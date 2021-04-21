@@ -1,5 +1,5 @@
 """
-Author: CIFAR-10 dataloader
+CIFAR-10 dataloader
 """
 
 import numpy as np
