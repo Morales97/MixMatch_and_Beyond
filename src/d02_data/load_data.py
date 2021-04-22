@@ -7,10 +7,10 @@ import os
 import sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
+# sys.path.append(parentdir)
 import pickle
 
-PATH = os.path.dirname(parentdir) + '/data/cifar-10-batches-py'
+PATH = os.path.join(os.path.dirname(parentdir), 'data', 'cifar-10-batches-py')
 
 
 def load_subset():
