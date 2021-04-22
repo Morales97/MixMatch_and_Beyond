@@ -9,9 +9,9 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 import pickle
-from d01_utils.utils import foo
 
-PATH = '../../data/cifar-10-batches-py'
+PATH = os.path.dirname(parentdir) + '/data/cifar-10-batches-py'
+
 
 def load_subset():
     train_fpath = os.path.join(PATH, 'data_batch_1')
@@ -24,11 +24,12 @@ def load_subset():
 
     return x_train, y_train, x_val, y_val, x_test, y_test
 
+
 def load_all(val_size=5000):
 
     fpath = os.path.join(PATH, 'data_batch_' + str(1))
     x_train, y_train = load_batch(fpath)
-    
+
     for i in range(2, 6):
         fpath = os.path.join(PATH, 'data_batch_' + str(i))
         x, y = load_batch(fpath)
@@ -44,6 +45,7 @@ def load_all(val_size=5000):
     x_test, y_test = load_batch(test_fpath)
 
     return x_train, y_train, x_val, y_val, x_test, y_test
+
 
 def load_batch(fpath, label_key='labels'):
     """
@@ -71,13 +73,15 @@ def load_batch(fpath, label_key='labels'):
     data = data.reshape(data.shape[0], 3072)
     return np.array(data), one_hot(np.array(labels))
 
+
 def one_hot(Y):
     shape = (Y.size, Y.max()+1)
     one_hot = np.zeros(shape)
     rows = np.arange(Y.size)
     one_hot[rows, Y] = 1
-    
+
     return one_hot
+
 
 def main():
 
@@ -88,7 +92,7 @@ def main():
     x_train = ( x_train - mean ) / std
     x_val = ( x_val - mean ) / std
     x_test = ( x_test - mean ) / std
-    
+
     x_train = x_train.T
     y_train = y_train.T
     x_val = x_val.T
@@ -101,5 +105,4 @@ def main():
     print("Test size:\t", x_test.shape[1])
 
 if __name__ == "__main__":
-    foo()
     main()
