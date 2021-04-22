@@ -5,7 +5,11 @@ CIFAR-10 dataloader
 import numpy as np
 import os
 import sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
 import pickle
+from d01_utils.utils import foo
 
 PATH = '../../data/cifar-10-batches-py'
 
@@ -97,4 +101,5 @@ def main():
     print("Test size:\t", x_test.shape[1])
 
 if __name__ == "__main__":
+    foo()
     main()
