@@ -5,18 +5,27 @@ CIFAR-10 dataloader
 import numpy as np
 import os
 import sys
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-# sys.path.append(parentdir)
 import pickle
 
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+
+# DM, 23/4: use this as a temporal fix
 PATH = os.path.join(os.path.dirname(parentdir), 'data', 'cifar-10-batches-py')
 
 
-def load_subset():
-    train_fpath = os.path.join(PATH, 'data_batch_1')
-    val_fpath = os.path.join(PATH, 'data_batch_2')
-    test_fpath = os.path.join(PATH, 'test_batch')
+def load_subset(path=None):
+    """
+    Load:
+        - 10k for train (batch_1)
+        - 10k for validation (batch_2)
+        - 10k for test (test_batch)
+    """
+    if path is None:
+        path = PATH
+    train_fpath = os.path.join(path, 'data_batch_1')
+    val_fpath = os.path.join(path, 'data_batch_2')
+    test_fpath = os.path.join(path, 'test_batch')
 
     x_train, y_train = load_batch(train_fpath)
     x_val, y_val = load_batch(val_fpath)
@@ -25,23 +34,27 @@ def load_subset():
     return x_train, y_train, x_val, y_val, x_test, y_test
 
 
-def load_all(val_size=5000):
+def load(train_size=45000, val_size=5000, path=None):
 
-    fpath = os.path.join(PATH, 'data_batch_' + str(1))
-    x_train, y_train = load_batch(fpath)
+    assert train_size + val_size <= 50000, 'overlap in training and validation set'
+    if path is None:
+        path = PATH
+
+    fpath = os.path.join(path, 'data_batch_' + str(1))
+    x, y = load_batch(fpath)
 
     for i in range(2, 6):
-        fpath = os.path.join(PATH, 'data_batch_' + str(i))
-        x, y = load_batch(fpath)
-        x_train = np.append(x_train, x, axis=0)
-        y_train = np.append(y_train, y, axis=0)
+        fpath = os.path.join(path, 'data_batch_' + str(i))
+        x_batch, y_batch = load_batch(fpath)
+        x = np.append(x_batch, x, axis=0)
+        y = np.append(y_batch, y, axis=0)
 
-    x_val = x_train[-val_size:,:]
-    y_val = y_train[-val_size:,:]
-    x_train = x_train[:-val_size,:]
-    y_train = y_train[:-val_size,:]
+    x_train = x[:train_size, :]
+    y_train = y[:train_size:, :]
+    x_val = x[-val_size:, :]
+    y_val = y[-val_size:, :]
 
-    test_fpath = os.path.join(PATH, 'test_batch')
+    test_fpath = os.path.join(path, 'test_batch')
     x_test, y_test = load_batch(test_fpath)
 
     return x_train, y_train, x_val, y_val, x_test, y_test
@@ -75,7 +88,7 @@ def load_batch(fpath, label_key='labels'):
 
 
 def one_hot(Y):
-    shape = (Y.size, Y.max()+1)
+    shape = (Y.size, Y.max() + 1)
     one_hot = np.zeros(shape)
     rows = np.arange(Y.size)
     one_hot[rows, Y] = 1
@@ -84,14 +97,13 @@ def one_hot(Y):
 
 
 def main():
-
-    x_train, y_train, x_val, y_val, x_test, y_test = load_all(val_size = 5000)
+    x_train, y_train, x_val, y_val, x_test, y_test = load(train_size=4000, val_size=1000)
 
     # Standardize data to have zero mean and unit std
     mean, std = x_train.mean(axis=0), x_train.std(axis=0)
-    x_train = ( x_train - mean ) / std
-    x_val = ( x_val - mean ) / std
-    x_test = ( x_test - mean ) / std
+    x_train = (x_train - mean) / std
+    x_val = (x_val - mean) / std
+    x_test = (x_test - mean) / std
 
     x_train = x_train.T
     y_train = y_train.T
@@ -103,6 +115,7 @@ def main():
     print("Train size:\t", x_train.shape[1])
     print("Val size:\t", x_val.shape[1])
     print("Test size:\t", x_test.shape[1])
+
 
 if __name__ == "__main__":
     main()
