@@ -1,5 +1,10 @@
 # Scarce Classifier
 
+## Papers
+
+- [MixMatch: A Holistic Approach to Semi-Supervised Learning](https://arxiv.org/abs/1905.02249)
+- [Unsupervised Representation Learning by Predicting Image Rotations](https://arxiv.org/abs/1803.07728)
+
 ## Environment creation
 
 ```
