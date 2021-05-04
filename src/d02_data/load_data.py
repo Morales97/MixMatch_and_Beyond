@@ -2,7 +2,7 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 
-def get_dataloaders( path='../../data' ):
+def get_dataloaders(path='../../data', batch_size=64):
 
     transform_train = transforms.Compose(
         # transforms.RandomCrop(32, padding=4),
@@ -15,7 +15,7 @@ def get_dataloaders( path='../../data' ):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
-    batch_size = 4
+    batch_size = batch_size
 
     trainset = torchvision.datasets.CIFAR10(root=path, train=True,
                                             download=True, transform=transform_train)

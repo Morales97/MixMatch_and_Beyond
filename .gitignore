@@ -1,6 +1,9 @@
 data/
 !data/cifar-10-batches-py/readme.html
 
+models/
+!models/.keep
+
 .DS_Store
 
 # Byte-compiled / optimized / DLL files

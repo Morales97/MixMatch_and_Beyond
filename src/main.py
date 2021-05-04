@@ -10,8 +10,13 @@ from d04_mixmatch.vanilla_net import VanillaNet
 from d07_visualization.visualize_cifar10 import show_img
 
 if __name__ == '__main__':
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # Assuming that we are on a CUDA machine, this should print a CUDA device:
+    print(device)
+
     trainset, trainloader, testset, testloader = get_dataloaders(path='../data')
     net = VanillaNet()
+    net.to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -23,7 +28,8 @@ if __name__ == '__main__':
         running_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data
+            # inputs, labels = data
+            inputs, labels = data[0].to(device), data[1].to(device)  # send to cuda
 
             # zero the parameter gradients
             optimizer.zero_grad()
