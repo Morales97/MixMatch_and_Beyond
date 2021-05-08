@@ -8,15 +8,17 @@ import numpy as np
 import pdb
 
 from d02_data.load_data import get_dataloaders, get_dataloaders_validation
+from d03_processing.transform_data import TransformTwice
 from d04_mixmatch.vanilla_net import VanillaNet
 from d07_visualization.visualize_cifar10 import show_img
-
-
 
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # Assuming that we are on a CUDA machine, this should print a CUDA device:
     print(device)
+
+    augment_labeled = TransformTwice(K=1)
+    augment_unlabeled = TransformTwice(K=2)
 
     # trainset, train_loader, testset, test_loader = get_dataloaders(path='../data')
     train_loader, val_loader, test_loader = get_dataloaders_validation(path='../data', batch_size=16)
