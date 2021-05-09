@@ -17,11 +17,11 @@ if __name__ == '__main__':
 
     # trainset, train_loader, testset, test_loader = get_dataloaders(path='../data')
     train_loader, val_loader, test_loader = get_dataloaders_validation(path='../data', batch_size=64)
-    net = WideResNet(depth=28, k=2, n_out=10)
-    net.to(device)
+    model = WideResNet(depth=28, k=2, n_out=10)
+    model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(net.parameters(), lr=0.001, weight_decay=4e-4)
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=4e-4)
 
     # show_img(iter(trainloader).next()[0][0])
 
@@ -31,6 +31,7 @@ if __name__ == '__main__':
 
     for epoch in range(2):  # loop over the dataset multiple times
 
+        model.train()     # set to train mode
         running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
@@ -41,7 +42,7 @@ if __name__ == '__main__':
             optimizer.zero_grad()
 
             # forward + backward + optimize
-            outputs = net(inputs)
+            outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -51,18 +52,19 @@ if __name__ == '__main__':
 
 
         # Compute train and validation loss
+        model.eval()    # set to evaluation mode. important for batchnorm layer
         with torch.no_grad():
             train_loss = 0
             for i, data in enumerate(train_loader, 0):
                 inputs, labels = data[0].to(device), data[1].to(device)
-                outputs = net(inputs)
+                outputs = model(inputs)
                 train_loss += criterion(outputs, labels).item()
             train_loss /= n_batches_train
             loss_train.append(train_loss)
             val_loss = 0
             for i, data in enumerate(val_loader, 0):
                 inputs, labels = data[0].to(device), data[1].to(device)
-                outputs = net(inputs)
+                outputs = model(inputs)
                 val_loss += criterion(outputs, labels).item()
             val_loss /= n_batches_val
             loss_val.append(val_loss)
@@ -78,9 +80,9 @@ if __name__ == '__main__':
     # since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
         for data in test_loader:
-            images, labels = data
+            images, labels = data[0].to(device), data[1].to(device)
             # calculate outputs by running images through the network
-            outputs = net(images)
+            outputs = model(images)
             # the class with the highest energy is what we choose as prediction
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
