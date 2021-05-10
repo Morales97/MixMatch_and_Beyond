@@ -4,10 +4,10 @@ import torch.optim as optim
 import numpy as np
 import pdb
 
+from d01_utils.torch_ema import ExponentialMovingAverage
 from d02_data.load_data import get_dataloaders, get_dataloaders_validation
 from d04_mixmatch.wideresnet import WideResNet
 from d07_visualization.visualize_cifar10 import show_img
-
 
 
 if __name__ == '__main__':
@@ -22,6 +22,7 @@ if __name__ == '__main__':
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=4e-4)
+    ema = ExponentialMovingAverage(model.parameters(), decay=0.999)
 
     # show_img(iter(trainloader).next()[0][0])
 
@@ -46,6 +47,7 @@ if __name__ == '__main__':
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
+            ema.update(model.parameters())
 
             if i % 150 == 0:    # print every 300 mini-batches
                 print('Step ' + str(i))
@@ -78,6 +80,7 @@ if __name__ == '__main__':
     # calculate accuracy on test set
     correct, total = 0, 0
     # since we're not training, we don't need to calculate the gradients for our outputs
+    model.eval()
     with torch.no_grad():
         for data in test_loader:
             images, labels = data[0].to(device), data[1].to(device)
@@ -91,3 +94,24 @@ if __name__ == '__main__':
     print('Accuracy of the network on the 10000 test images: %d %%' % (
             100 * correct / total))
 
+
+    # with EMA
+    # First save original parameters before replacing with EMA version
+    ema.store(model.parameters())
+    # Copy EMA parameters to model
+    ema.copy_to(model.parameters())
+    model.eval()
+    with torch.no_grad():
+        for data in test_loader:
+            images, labels = data[0].to(device), data[1].to(device)
+            # calculate outputs by running images through the network
+            outputs = model(images)
+            # the class with the highest energy is what we choose as prediction
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    print('Accuracy of the network on the 10000 test images: %d %%' % (
+            100 * correct / total))
+    # Restore original parameters to resume training later
+    ema.restore(model.parameters())

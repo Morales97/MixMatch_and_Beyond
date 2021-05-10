@@ -2,13 +2,16 @@ import torch
 import torch.nn as nn
 from torchsummary import summary
 
+"""
+Same as WideResNet, but uses ReLU instead of LeakyReLU
+"""
 
 class BasicBlock(nn.Module):
 
     def __init__(self, n_features):
         super(BasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(n_features)
-        self.relu = nn.LeakyReLU(negative_slope=0.1)
+        self.relu = nn.ReLU()
         self.conv1 = nn.Conv2d(n_features, n_features, kernel_size=(3, 3), padding=1)
 
         self.bn2 = nn.BatchNorm2d(n_features)
@@ -41,7 +44,7 @@ class TransitionBlock(nn.Module):
 
         super(TransitionBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_f)
-        self.relu = nn.LeakyReLU(negative_slope=0.1)
+        self.relu = nn.ReLU()
         self.conv1 = nn.Conv2d(in_f, out_f, kernel_size=(3, 3), padding=1, stride=stride)
 
         self.bn2 = nn.BatchNorm2d(out_f)
@@ -74,10 +77,10 @@ class ConvGroup(nn.Module):
         return self.conv_blocks(x)
 
 
-class WideResNet(nn.Module):
+class WideResNet_ReLU(nn.Module):
 
     def __init__(self, depth, k, n_out):
-        super(WideResNet, self).__init__()
+        super(WideResNet_ReLU, self).__init__()
 
         assert (depth - 4) % 6 == 0, "depth must be 6*n + 4"
         n = int((depth - 4) / 6)
@@ -88,7 +91,7 @@ class WideResNet(nn.Module):
         self.conv_group2 = ConvGroup(n_features[1], n_features[2], blocks=n)
         self.conv_group3 = ConvGroup(n_features[2], n_features[3], blocks=n)
         self.bn = nn.BatchNorm2d(n_features[3])
-        self.relu = nn.LeakyReLU(negative_slope=0.1)
+        self.relu = nn.ReLU()
         self.avg_pool = nn.AvgPool2d(kernel_size=8)
         self.linear = nn.Linear(n_features[3], n_out)
 
@@ -107,6 +110,6 @@ class WideResNet(nn.Module):
 
 if __name__ == '__main__':
 
-    model = WideResNet(depth=28, k=2, n_out=10)
+    model = WideResNet_ReLU(depth=28, k=2, n_out=10)
     summary(model, (3, 32, 32))
 
