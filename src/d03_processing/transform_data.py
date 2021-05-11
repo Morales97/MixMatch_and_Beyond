@@ -1,7 +1,8 @@
 import torchvision.transforms as transforms
 import torch
 
-class TransformTwice:
+
+class Augment:
     def __init__(self, K=2):
         self.K = K
         self.transform = transforms.Compose([transforms.RandomHorizontalFlip(),
@@ -13,6 +14,7 @@ class TransformTwice:
         for _ in range(self.K):
             augmented_batch.append(self.transform(batch))
         return augmented_batch
+
 
 class AddGaussianNoise(object):
     def __init__(self, mean=0., std=1.):
