@@ -6,6 +6,7 @@ import pdb
 
 from d01_utils.torch_ema import ExponentialMovingAverage
 from d02_data.load_data import get_dataloaders, get_dataloaders_validation
+from d03_processing.transform_data import Augment
 from d04_mixmatch.wideresnet import WideResNet
 from d07_visualization.visualize_cifar10 import show_img
 
@@ -30,6 +31,8 @@ if __name__ == '__main__':
     n_batches_val = np.floor(val_loader.sampler.__len__() / val_loader.batch_size)
     loss_train, loss_val = [], []
 
+    augment = Augment(K=1)
+
     for epoch in range(2):  # loop over the dataset multiple times
 
         model.train()     # set to train mode
@@ -37,7 +40,9 @@ if __name__ == '__main__':
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
             # inputs, labels = data
-            inputs, labels = data[0].to(device), data[1].to(device)  # send to cuda
+            inputs, labels = data[0], data[1].to(device)  # send to cuda
+            inputs = augment(inputs)[0]
+            inputs = inputs.to(device)
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -111,7 +116,7 @@ if __name__ == '__main__':
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    print('Accuracy of the network on the 10000 test images: %d %%' % (
+    print('Accuracy tested with EMA parameters on the 10000 test images: %d %%' % (
             100 * correct / total))
     # Restore original parameters to resume training later
     ema.restore(model.parameters())
