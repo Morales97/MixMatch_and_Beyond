@@ -10,9 +10,9 @@ class Augment:
                                             AddGaussianNoise(mean=0, std=0.15)])
 
     def __call__(self, batch):
-        augmented_batch = []
-        for _ in range(self.K):
-            augmented_batch.append(self.transform(batch))
+        augmented_batch = torch.zeros((self.K, *batch.shape))
+        for k in range(self.K):
+            augmented_batch[k] = self.transform(batch)
         return augmented_batch
 
 
