@@ -1,41 +1,71 @@
 import torch
-import torchvision
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from torch.utils.data.sampler import SubsetRandomSampler
 import numpy as np
 
 
-def get_dataloaders(path='../../data', batch_size=64):
-    transform_train = transforms.Compose(
-        # transforms.RandomCrop(32, padding=4),
-        # transforms.RandomHorizontalFlip(),
-        [transforms.ToTensor(),
-         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+def get_dataloaders_ssl(path="../../data", batch_size=64, num_labeled=250):
+    """
+    Returns data loaders for Semi-Supervised Learning
+    Split between train_labeled, train_unlabeled, validation and test
+    """
 
-    transform_test = transforms.Compose([
+    # Define transform to normalize data
+    normalize = transforms.Normalize(
+        mean=[0.4914, 0.4822, 0.4465],
+        std=[0.2023, 0.1994, 0.2010],
+    )
+    transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        normalize,
     ])
 
-    batch_size = batch_size
+    # Get train and test dataset
+    train_set = datasets.CIFAR10(root=path, train=True, download=True, transform=transform)
 
-    trainset = datasets.CIFAR10(root=path, train=True,
-                                download=True, transform=transform_train)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
-                                              shuffle=True, num_workers=2)
+    test_set = datasets.CIFAR10(root=path, train=False, download=True, transform=transform)
 
-    testset = datasets.CIFAR10(root=path, train=False,
-                               download=True, transform=transform_test)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                             shuffle=False, num_workers=2)
+    # Split indexes between labeled, unlabeled and validation
+    train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(train_set.targets,
+                                                                                     int(num_labeled / 10))
 
-    classes = ('plane', 'car', 'bird', 'cat',
-               'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+    # Define samplers using indexes
+    train_labeled_sampler = SubsetRandomSampler(train_labeled_idxs)
+    train_unlabeled_sampler = SubsetRandomSampler(train_unlabeled_idxs)
+    val_sampler = SubsetRandomSampler(val_idxs)
 
-    return trainset, trainloader, testset, testloader
+    # Create data loaders
+    train_labeled_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
+                                                       sampler=train_labeled_sampler, num_workers=2)
+    train_unlabeled_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
+                                                         sampler=train_unlabeled_sampler, num_workers=2)
+    val_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, sampler=val_sampler, num_workers=2)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=2)
+
+    return train_labeled_loader, train_unlabeled_loader, val_loader, test_loader
 
 
+def labeled_unlabeled_val_split(labels, n_labeled_per_class):
+    labels = np.array(labels)
+    train_labeled_idxs = []
+    train_unlabeled_idxs = []
+    val_idxs = []
+
+    for i in range(10):
+        idxs = np.where(labels == i)[0]
+        np.random.shuffle(idxs)
+        train_labeled_idxs.extend(idxs[:n_labeled_per_class])
+        train_unlabeled_idxs.extend(idxs[n_labeled_per_class:-500])
+        val_idxs.extend(idxs[-500:])
+    np.random.shuffle(train_labeled_idxs)
+    np.random.shuffle(train_unlabeled_idxs)
+    np.random.shuffle(val_idxs)
+
+    return train_labeled_idxs, train_unlabeled_idxs, val_idxs
+
+
+# -------- This function is deprecated ---------
 def get_dataloaders_validation(path="../../data", batch_size=64, shuffle=False, augment=False,
                                train_size=45000, val_size=5000):
     """
@@ -98,6 +128,38 @@ def get_dataloaders_validation(path="../../data", batch_size=64, shuffle=False, 
     return train_loader, valid_loader, test_loader
 
 
+# -------- This function is deprecated ---------
+def get_dataloaders(path='../../data', batch_size=64):
+    transform_train = transforms.Compose(
+        # transforms.RandomCrop(32, padding=4),
+        # transforms.RandomHorizontalFlip(),
+        [transforms.ToTensor(),
+         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    batch_size = batch_size
+
+    trainset = datasets.CIFAR10(root=path, train=True,
+                                download=True, transform=transform_train)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+                                              shuffle=True, num_workers=2)
+
+    testset = datasets.CIFAR10(root=path, train=False,
+                               download=True, transform=transform_test)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+                                             shuffle=False, num_workers=2)
+
+    classes = ('plane', 'car', 'bird', 'cat',
+               'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+    return trainset, trainloader, testset, testloader
+
+
 if __name__ == "__main__":
-    trainset, trainloader, testset, testloader = get_dataloaders()
-    print(trainset.data.shape)
+    _, _, _, _ = get_dataloaders_ssl()
+    print('foo')
+
