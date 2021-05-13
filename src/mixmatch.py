@@ -29,9 +29,7 @@ class MixMatch(object):
         u_hat = augment_k(u_imgs)  # shape (K, batch_size, 3, 32, 32)
 
         # Generate guessed labels
-        start_t = time.time()
         q_bar = self.guess_label(u_hat)
-        print('guessing labels time: ', str(time.time() - start_t))
         q = self.sharpen(q_bar)  # shape (K, batch_size, 10)
 
         x_hat = x_hat.reshape((-1, 3, 32, 32))  # shape (batch_size, 3, 32, 32)
@@ -76,7 +74,7 @@ class MixMatch(object):
 
     def one_hot_encoding(self, labels):
         shape = (labels.shape[0], self.n_labels)
-        one_hot = np.zeros(shape)
+        one_hot = np.zeros(shape, dtype=np.float32)
         rows = np.arange(labels.shape[0])
         one_hot[rows, labels] = 1
         return torch.from_numpy(one_hot)
