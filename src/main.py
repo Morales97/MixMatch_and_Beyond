@@ -5,10 +5,34 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import pdb
 
 from d02_data.load_data import get_dataloaders_ssl
 from d04_mixmatch.wideresnet import WideResNet
 from mixmatch import MixMatch
+
+
+class Loss(object):
+
+    def __init__(self, lambda_u_max, step_top_up):
+        self.lambda_u_max = lambda_u_max
+        self.step_top_up = step_top_up
+
+    def __call__(self, x_output, x_target, u_output, u_target, step):
+
+        lambda_u = self.ramp_up_lambda(step)
+
+        lx = - torch.mean(torch.sum(x_target * torch.log_softmax(x_output, dim=1), dim=1))
+        mse_loss = nn.MSELoss()
+        lu = mse_loss(u_output, u_target) / u_target.shape[1]
+        return lx + lu * lambda_u
+
+    def ramp_up_lambda(self, step):
+        if step > self.step_top_up:
+            return self.lambda_u_max
+        else:
+            return self.lambda_u_max * step / self.step_top_up
+
 
 if __name__ == '__main__':
 
@@ -16,7 +40,8 @@ if __name__ == '__main__':
     num_labeled = 250
     n_steps = 10
     K = 2
-    lambda_u = 75
+    lambda_u_max = 75
+    num_outputs = 10
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     labeled_loader, unlabeled_loader, val_loader, test_loader = get_dataloaders_ssl(path='../data',
@@ -31,6 +56,8 @@ if __name__ == '__main__':
 
     iter_labeled_loader = iter(labeled_loader)
     iter_unlabeled_loader = iter(unlabeled_loader)
+
+    loss_mixmatch = Loss(lambda_u_max, 16000)
 
     for step in range(n_steps):
 
@@ -54,13 +81,12 @@ if __name__ == '__main__':
             iter_unlabeled_loader = iter(unlabeled_loader)
             u_imgs, _ = iter_unlabeled_loader.next()
 
-        mixmatch = MixMatch(model, batch_size)
+        mixmatch = MixMatch(model, batch_size)  # try if model is a reference, take this out of the steps loop
         x, u = mixmatch.run(x_imgs, x_labels, u_imgs)
 
-        x_input = x[0]
-        x_targets = x[1]
-        u_input = u[0]
-        u_targets = u[1].detach_()  # stop gradients from propagation to label guessing. Is this necessary?
+        x_input, x_targets = x
+        u_input, u_targets = u
+        u_targets.detach_()  # stop gradients from propagation to label guessing. Is this necessary?
 
         # Compute X' predictions
         x_output = model(x_input)
@@ -74,9 +100,7 @@ if __name__ == '__main__':
         u_outputs = torch.cat(u_batch_outs, dim=0)
 
         # Compute loss
-        lx = criterion_x(x_output, x_targets)
-        lu = criterion_u(u_outputs, u_targets)
-        loss = lx + lambda_u * lu  # TODO ramp up lambda_u
+        loss = loss_mixmatch(x_output, x_targets, u_outputs, u_targets, step)
 
         # Step
         loss.backward()
