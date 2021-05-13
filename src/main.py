@@ -88,6 +88,12 @@ if __name__ == '__main__':
         u_input, u_targets = u
         u_targets.detach_()  # stop gradients from propagation to label guessing. Is this necessary?
 
+        x_input = x_input.to(device)
+        x_targets = x_targets.to(device)
+        u_input = u_input.to(device)
+        u_targets = u_targets.to(device)
+
+
         # Compute X' predictions
         x_output = model(x_input)
 
