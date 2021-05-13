@@ -1,0 +1,17 @@
+cifar_10:
+  batch_size: 64
+  num_outputs: 10
+  num_labeled: 250
+
+MixMatchTrainer:
+  n_steps: 100
+  K: 2
+  lambda_u_max: 75
+  steps_validation: 5 # steps to print validation losses and accuracy
+  step_top_up: 16000
+  lr: 0.002
+
+WideResNet:
+  depth: 28
+  k: 2
+  n_out: 10
