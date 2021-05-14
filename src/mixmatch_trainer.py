@@ -1,3 +1,4 @@
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -58,18 +59,18 @@ class MixMatchTrainer:
             try:
                 x_imgs, x_labels = iter_labeled_loader.next()
                 # Check if batch size has been cropped for last batch
-                if x_imgs.shape[0] < self.batch_size:
-                    iter_labeled_loader = iter(self.labeled_loader)
-                    x_imgs, x_labels = iter_labeled_loader.next()
+                #if x_imgs.shape[0] < self.batch_size:
+                #iter_labeled_loader = iter(self.labeled_loader)
+                #x_imgs, x_labels = iter_labeled_loader.next()
             except:
-                iter_loader = iter(self.labeled_loader)
+                iter_labeled_loader = iter(self.labeled_loader)
                 x_imgs, x_labels = iter_loader.next()
 
             try:
                 u_imgs, _ = iter_unlabeled_loader.next()
-                if u_imgs.shape[0] < self.batch_size:
-                    iter_unlabeled_loader = iter(self.unlabeled_loader)
-                    u_imgs, _ = iter_unlabeled_loader.next()
+                #if u_imgs.shape[0] < self.batch_size:
+                #    iter_unlabeled_loader = iter(self.unlabeled_loader)
+                #    u_imgs, _ = iter_unlabeled_loader.next()
             except:
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
                 u_imgs, _ = iter_unlabeled_loader.next()
@@ -123,8 +124,8 @@ class MixMatchTrainer:
                 train_loss, train_acc = self.evaluate(self.labeled_loader)
                 self.train_losses.append(train_loss)
                 self.train_accuracies.append(train_acc)
-                print("Step %d.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
-                      (step, train_loss, val_loss, train_acc, val_acc))
+                print("Step %d.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f \t %s" %
+                      (step, train_loss, val_loss, train_acc, val_acc, time.ctime()))
 
                 self.writer.add_scalar("Loss train_label", train_loss, step)
                 self.writer.add_scalar("Loss validation", val_loss, step)
