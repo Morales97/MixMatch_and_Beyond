@@ -11,12 +11,13 @@ from mixmatch import MixMatch
 class MixMatchTrainer:
 
     def __init__(self, data, model_params, n_steps, K, lambda_u_max, steps_validation, step_top_up, optimizer, adam,
-                 sgd):
+                 sgd, steps_checkpoint):
 
         self.n_steps = n_steps
         self.K = K
         self.lambda_u_max = lambda_u_max
         self.steps_validation = steps_validation
+        self.steps_checkpoint = steps_checkpoint
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = data
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -43,6 +44,8 @@ class MixMatchTrainer:
         # self.ema = ExponentialMovingAverage(self.model.parameters(), decay=0.999)
 
         self.writer = SummaryWriter()
+
+        self.learning_steps = {0, 30_000, 60_000, 80_000}
 
     def train(self):
 
@@ -127,6 +130,16 @@ class MixMatchTrainer:
                 self.writer.add_scalar("Accuracy train_label", train_acc, step)
                 self.writer.add_scalar("Accuracy validation", val_acc, step)
 
+            if step in self.learning_steps:
+                for g in self.optimizer.param_groups:
+                    g['lr'] *= 0.2
+
+            if not step % self.steps_checkpoint:
+                torch.save({
+                    'step': step,
+                    'model_state_dict': self.model.state_dict(),
+                    'optimizer_state_dict': self.optimizer.state_dict(),
+                }, '../models/checkpoint.pt')
             """
             # Evaluate with EMA
             # First save original parameters before replacing with EMA version

@@ -1,5 +1,6 @@
 from pathlib import Path
 import yaml
+import pickle
 
 from d02_data.load_data import get_dataloaders_ssl
 from d07_visualization.viz_training import plot_acc, plot_training_loss, plot_losses
@@ -19,6 +20,7 @@ if __name__ == '__main__':
 	K = config['K']
 	lambda_u_max = config['lambda_u_max']
 	steps_validation = config['steps_validation']
+	steps_checkpoint = config['steps_checkpoint']
 	step_top_up = config['step_top_up']
 	optimizer = config['optimizer']
 	adam_params = adam['lr'], adam['weight_decay']
@@ -35,4 +37,10 @@ if __name__ == '__main__':
 	plot_training_loss(trainer.train_losses, trainer.val_losses)
 	plot_acc(trainer.train_accuracies, trainer.val_accuracies)
 	plot_losses(*trainer.get_losses())
+
+	# save trainer model
+
+	# serialize object
+	with open('../models/model.pkl', 'wb') as fid:
+		pickle.dump(trainer, fid)
 
