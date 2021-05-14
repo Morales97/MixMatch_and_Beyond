@@ -1,6 +1,6 @@
 from pathlib import Path
 import yaml
-import pickle
+import time
 
 from d02_data.load_data import get_dataloaders_ssl
 from d07_visualization.viz_training import plot_acc, plot_training_loss, plot_losses
@@ -32,8 +32,11 @@ if __name__ == '__main__':
 
 	trainer = MixMatchTrainer(data, wideresnet_params, n_steps, K, lambda_u_max, steps_validation, step_top_up,
 	                          optimizer, adam_params, sgd_params, steps_checkpoint)
+	start_time = time.time()
 
 	trainer.train()
+
+	print("--- %s seconds ---" % (time.time() - start_time))
 
 	trainer.save_model()
 
