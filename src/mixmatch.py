@@ -7,19 +7,21 @@ from d03_processing.transform_data import Augment
 
 class MixMatch(object):
 
-    def __init__(self, model, batch_size, T=0.5, K=2, alpha=0.75):
+    def __init__(self, model, batch_size, device, T=0.5, K=2, alpha=0.75):
         self.T = T
         self.K = K
         self.batch_size = batch_size
         self.alpha = alpha
         self.softmax = nn.Softmax(dim=1)
         self.model = model
+        self.device = device
         self.n_labels = 10  # Warning! hardcoded
         self.beta = torch.distributions.beta.Beta(alpha, alpha)
 
     def run(self, x_imgs, x_labels, u_imgs):
         # One hot encoding
         x_labels = self.one_hot_encoding(x_labels)
+        x_labels.to(self.device)
 
         # Augment
         augment_once = Augment(K=1)
@@ -49,22 +51,22 @@ class MixMatch(object):
 
     def mixup(self, x1, x2, p1, p2):
         n_samples = x1.shape[0]
-        lambda_rand = self.beta.sample([n_samples, 1, 1, 1])  # one lambda per sample
-        lambda_prime = torch.max(lambda_rand, 1 - lambda_rand)
+        lambda_rand = self.beta.sample([n_samples, 1, 1, 1]).to(self.device)  # one lambda per sample
+        lambda_prime = torch.max(lambda_rand, 1 - lambda_rand).to(self.device)
         x_prime = lambda_prime * x1 + (1 - lambda_prime) * x2
         lambda_prime = lambda_prime.reshape(-1, 1)
         p_prime = lambda_prime * p1 + (1 - lambda_prime) * p2
         return x_prime, p_prime
 
     def sharpen(self, q_bar):
-        q_bar = q_bar.numpy()
-        q = np.power(q_bar, 1 / self.T) / np.sum(np.power(q_bar, 1 / self.T), axis=1)[:, np.newaxis]
-        return torch.from_numpy(q)
+        #q_bar = q_bar.numpy()
+        q = torch.pow(q_bar, 1 / self.T) / torch.sum(torch.pow(q_bar, 1 / self.T), axis=1)[:, np.newaxis]
+        return q
 
     def guess_label(self, u_hat):
         self.model.eval()
         with torch.no_grad():
-            q_bar = torch.zeros([self.batch_size, self.n_labels])
+            q_bar = torch.zeros([self.batch_size, self.n_labels], device=self.device)
             for k in range(self.K):
                 q_bar += self.softmax(self.model(u_hat[k]))
             q_bar /= self.K
@@ -74,10 +76,10 @@ class MixMatch(object):
 
     def one_hot_encoding(self, labels):
         shape = (labels.shape[0], self.n_labels)
-        one_hot = np.zeros(shape, dtype=np.float32)
-        rows = np.arange(labels.shape[0])
+        one_hot = torch.zeros(shape, dtype=torch.float32, device=self.device)
+        rows = torch.arange(labels.shape[0])
         one_hot[rows, labels] = 1
-        return torch.from_numpy(one_hot)
+        return one_hot
 
     # shuffles along the first axis (axis 0)
     def shuffle_matrices(self, m1, m2):
