@@ -60,11 +60,11 @@ class MixMatchTrainer:
                 x_imgs, x_labels = iter_labeled_loader.next()
                 # Check if batch size has been cropped for last batch
                 #if x_imgs.shape[0] < self.batch_size:
-                #iter_labeled_loader = iter(self.labeled_loader)
-                #x_imgs, x_labels = iter_labeled_loader.next()
+                #    iter_labeled_loader = iter(self.labeled_loader)
+                #    x_imgs, x_labels = iter_labeled_loader.next()
             except:
                 iter_labeled_loader = iter(self.labeled_loader)
-                x_imgs, x_labels = iter_loader.next()
+                x_imgs, x_labels = iter_labeled_loader.next()
 
             try:
                 u_imgs, _ = iter_unlabeled_loader.next()
