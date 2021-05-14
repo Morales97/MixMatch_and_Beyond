@@ -19,9 +19,10 @@ class MixMatchTrainer:
         self.steps_validation = steps_validation
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = data
         self.batch_size = self.labeled_loader.batch_size
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         depth, k, n_out = model_params
-        self.model = WideResNet(depth=depth, k=k, n_out=n_out)
+        self.model = WideResNet(depth=depth, k=k, n_out=n_out).to(self.device)
         if optimizer == 'adam':
             lr, weight_decay = adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -36,7 +37,8 @@ class MixMatchTrainer:
         self.train_accuracies, self.train_losses = [], []
         self.val_accuracies, self.val_losses = [], []
 
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.mixmatch = MixMatch(self.model, self.batch_size, self.device)
+
 
     def train(self):
 
@@ -64,23 +66,26 @@ class MixMatchTrainer:
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
                 u_imgs, _ = iter_unlabeled_loader.next()
 
+
+            x_imgs = x_imgs.to(self.device)
+            x_labels = x_labels.to(self.device)
+            u_imgs = u_imgs.to(self.device)
             # MixMatch algorithm
-            self.model.to('cpu')
-            mixmatch = MixMatch(self.model,
-                                self.batch_size)  # try if model is a reference, take this out of the steps loop
-            x, u = mixmatch.run(x_imgs, x_labels, u_imgs)
+            x, u = self.mixmatch.run(x_imgs, x_labels, u_imgs)
 
             x_input, x_targets = x
             u_input, u_targets = u
             u_targets.detach_()  # stop gradients from propagation to label guessing. Is this necessary?
 
             # Send to GPU
-            self.model.train()
-            self.model.to(self.device)
+            '''
             x_input = x_input.to(self.device)
             x_targets = x_targets.to(self.device)
             u_input = u_input.to(self.device)
             u_targets = u_targets.to(self.device)
+            '''
+
+            self.model.train()
 
             # Compute X' predictions
             self.optimizer.zero_grad()
