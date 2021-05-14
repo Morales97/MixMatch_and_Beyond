@@ -3,8 +3,8 @@
 data/
 !data/cifar-10-batches-py/readme.html
 
-models/
 !models/.keep
+models/
 
 .DS_Store
 
