@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
 
 from d01_utils.torch_ema import ExponentialMovingAverage
 from d04_mixmatch.wideresnet import WideResNet
@@ -40,6 +41,8 @@ class MixMatchTrainer:
 
         self.mixmatch = MixMatch(self.model, self.batch_size, self.device)
         # self.ema = ExponentialMovingAverage(self.model.parameters(), decay=0.999)
+
+        self.writer = SummaryWriter()
 
     def train(self):
 
@@ -119,6 +122,11 @@ class MixMatchTrainer:
                 print("Step %d.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
                       (step, train_loss, val_loss, train_acc, val_acc))
 
+                self.writer.add_scalar("Loss train_label", train_loss, step)
+                self.writer.add_scalar("Loss validation", val_loss, step)
+                self.writer.add_scalar("Accuracy train_label", train_acc, step)
+                self.writer.add_scalar("Accuracy validation", val_acc, step)
+
             """
             # Evaluate with EMA
             # First save original parameters before replacing with EMA version
@@ -143,6 +151,8 @@ class MixMatchTrainer:
         print("With EMA\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
         self.ema.restore(self.model.parameters())
         """
+
+        self.writer.flush()
 
     def evaluate(self, dataloader):
         self.model.eval()
