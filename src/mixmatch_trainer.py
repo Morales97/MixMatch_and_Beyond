@@ -27,7 +27,8 @@ class MixMatchTrainer:
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
         else:
             lr, momentum, weight_decay = sgd
-            self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+            self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay,
+                                       nesterov=True)
 
         self.loss_mixmatch = Loss(self.lambda_u_max, step_top_up)
         self.criterion = nn.CrossEntropyLoss()
