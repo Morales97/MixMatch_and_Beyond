@@ -30,7 +30,8 @@ if __name__ == '__main__':
 
 	data = get_dataloaders_ssl(path='../data', batch_size=batch_size, num_labeled=num_labeled)
 
-	trainer = MixMatchTrainer(data, wideresnet_params, n_steps, K, lambda_u_max, steps_validation, step_top_up, optimizer, adam_params, sgd_params)
+	trainer = MixMatchTrainer(data, wideresnet_params, n_steps, K, lambda_u_max, steps_validation, step_top_up,
+	                          optimizer, adam_params, sgd_params, steps_checkpoint)
 
 	trainer.train()
 
