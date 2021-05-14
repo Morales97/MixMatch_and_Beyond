@@ -35,13 +35,8 @@ if __name__ == '__main__':
 
 	trainer.train()
 
+	trainer.save_model()
+
 	plot_training_loss(trainer.train_losses, trainer.val_losses)
 	plot_acc(trainer.train_accuracies, trainer.val_accuracies)
 	plot_losses(*trainer.get_losses())
-
-	# save trainer model
-
-	# serialize object
-	with open('../models/model.pkl', 'wb') as fid:
-		pickle.dump(trainer, fid)
-

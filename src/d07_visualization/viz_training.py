@@ -10,8 +10,8 @@ def plot_training_loss(loss_train, loss_test):
     plt.xlabel('Steps')
     plt.ylabel('Loss')
     plt.legend()
-    # plt.savefig('loss_function.png', format='png')
-    plt.show()
+    plt.savefig('../models/loss.png', format='png')
+    #plt.show()
 
 
 def plot_acc(acc_train, acc_test):
@@ -22,8 +22,8 @@ def plot_acc(acc_train, acc_test):
     plt.xlabel('Steps')
     plt.ylabel('%')
     plt.legend()
-    # plt.savefig('loss_function.png', format='png')
-    plt.show()
+    plt.savefig('../models/accuracy.png', format='png')
+    #plt.show()
 
 
 def plot_losses(loss, lx, lu, lu_weighted):
@@ -35,5 +35,5 @@ def plot_losses(loss, lx, lu, lu_weighted):
     plt.title('Batch Loss')
     plt.xlabel('Steps')
     plt.legend()
-    # plt.savefig('loss_function.png', format='png')
-    plt.show()
+    plt.savefig('../models/losses_mixmatch.png', format='png')
+    #plt.show()

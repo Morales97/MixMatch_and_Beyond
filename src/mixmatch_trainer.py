@@ -188,6 +188,22 @@ class MixMatchTrainer:
     def get_losses(self):
         return self.loss_mixmatch.loss_list, self.loss_mixmatch.lx_list, self.loss_mixmatch.lu_list, self.loss_mixmatch.lu_weighted_list
 
+    def save_model(self):
+        loss_list, lx, lu, lu_weighted = self.get_losses()
+
+        torch.save({
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'loss_train': self.train_losses,
+            'loss_val': self.val_losses,
+            'acc_train': self.train_accuracies,
+            'acc_val': self.val_accuracies,
+            'loss_batch': loss_list,
+            'lx': lx,
+            'lu': lu,
+            'lu_weighted': lu_weighted,
+        }, '../models/model.pt')
+
 
 class Loss(object):
 
