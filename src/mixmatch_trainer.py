@@ -21,6 +21,7 @@ class MixMatchTrainer:
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = data
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print(self.device)
 
         depth, k, n_out = model_params
         self.model = WideResNet(depth=depth, k=k, n_out=n_out).to(self.device)
@@ -45,7 +46,7 @@ class MixMatchTrainer:
 
         self.writer = SummaryWriter()
 
-        self.learning_steps = {0, 30_000, 60_000, 80_000}
+        self.learning_steps = {30_000, 60_000, 80_000}
 
     def train(self):
 
