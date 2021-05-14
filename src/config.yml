@@ -7,9 +7,17 @@ MixMatchTrainer:
   n_steps: 100
   K: 2
   lambda_u_max: 75
-  steps_validation: 5 # steps to print validation losses and accuracy
+  steps_validation: 10 # steps to print validation losses and accuracy
   step_top_up: 16000
-  lr: 0.002
+  optimizer: 'adam'
+  adam:
+    lr: 0.002
+    weight_decay: 0.0004
+  sgd:
+    lr: 0.1
+    momentum: 0.9
+    weight_decay: 0.0005
+
 
 WideResNet:
   depth: 28
