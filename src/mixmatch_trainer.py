@@ -115,36 +115,11 @@ class MixMatchTrainer:
 
             # Evaluate model
             if not step % self.steps_validation:
-                val_loss, val_acc = self.evaluate(self.val_loader)
-                self.val_losses.append(val_loss)
-                self.val_accuracies.append(val_acc)
-                train_loss, train_acc = self.evaluate(self.labeled_loader)
-                self.train_losses.append(train_loss)
-                self.train_accuracies.append(train_acc)
-                print("Step %d.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f \t %s" %
-                      (step, train_loss, val_loss, train_acc, val_acc, time.ctime()))
-
-                self.writer.add_scalar("Loss train_label", train_loss, step)
-                self.writer.add_scalar("Loss validation", val_loss, step)
-                self.writer.add_scalar("Accuracy train_label", train_acc, step)
-                self.writer.add_scalar("Accuracy validation", val_acc, step)
+                self.evaluate_no_ema(step)
 
             # Evaluate with EMA
             if self.ema and not step % self.steps_validation:
-                # First save original parameters before replacing with EMA version
-                self.ema.store(self.model.parameters())
-                # Copy EMA parameters to model
-                self.ema.copy_to(self.model.parameters())
-                val_loss, val_acc = self.evaluate(self.val_loader)
-                train_loss, train_acc = self.evaluate(self.labeled_loader)
-                print("With EMA.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
-                      (train_loss, val_loss, train_acc, val_acc))
-                self.ema.restore(self.model.parameters())
-
-                self.writer.add_scalar("Loss train_label EMA", train_loss, step)
-                self.writer.add_scalar("Loss validation EMA", val_loss, step)
-                self.writer.add_scalar("Accuracy train_label EMA", train_acc, step)
-                self.writer.add_scalar("Accuracy validation EMA", val_acc, step)
+                self.evaluate_ema(step)
 
             # Save checkpoint
             if not step % self.steps_checkpoint:
@@ -159,7 +134,7 @@ class MixMatchTrainer:
         test_val, test_acc = self.evaluate(self.test_loader)
         print("Training done!!\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
 
-        # Evalate with EMA
+        # Evaluate with EMA
         if self.ema:
             self.ema.store(self.model.parameters())
             self.ema.copy_to(self.model.parameters())
@@ -168,6 +143,39 @@ class MixMatchTrainer:
             self.ema.restore(self.model.parameters())
 
         self.writer.flush()
+
+    # --- support functions ---
+
+    def evaluate_no_ema(self, step):
+        val_loss, val_acc = self.evaluate(self.val_loader)
+        self.val_losses.append(val_loss)
+        self.val_accuracies.append(val_acc)
+        train_loss, train_acc = self.evaluate(self.labeled_loader)
+        self.train_losses.append(train_loss)
+        self.train_accuracies.append(train_acc)
+        print("Step %d.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f \t %s" %
+              (step, train_loss, val_loss, train_acc, val_acc, time.ctime()))
+
+        self.writer.add_scalar("Loss train_label", train_loss, step)
+        self.writer.add_scalar("Loss validation", val_loss, step)
+        self.writer.add_scalar("Accuracy train_label", train_acc, step)
+        self.writer.add_scalar("Accuracy validation", val_acc, step)
+
+    def evaluate_ema(self, step):
+        # First save original parameters before replacing with EMA version
+        self.ema.store(self.model.parameters())
+        # Copy EMA parameters to model
+        self.ema.copy_to(self.model.parameters())
+        val_loss, val_acc = self.evaluate(self.val_loader)
+        train_loss, train_acc = self.evaluate(self.labeled_loader)
+        print("With EMA.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
+              (train_loss, val_loss, train_acc, val_acc))
+        self.ema.restore(self.model.parameters())
+
+        self.writer.add_scalar("Loss train_label EMA", train_loss, step)
+        self.writer.add_scalar("Loss validation EMA", val_loss, step)
+        self.writer.add_scalar("Accuracy train_label EMA", train_acc, step)
+        self.writer.add_scalar("Accuracy validation EMA", val_acc, step)
 
     def evaluate(self, dataloader):
         self.model.eval()
@@ -191,9 +199,15 @@ class MixMatchTrainer:
 
     def save_model(self):
         loss_list, lx, lu, lu_weighted = self.get_losses()
+        model_state_dict = self.model.state_dict()
+        ema_state_dict = None
+        if self.ema:
+            self.ema.copy_to(self.model.parameters())
+            ema_state_dict = self.model.state_dict()
 
         torch.save({
-            'model_state_dict': self.model.state_dict(),
+            'model_state_dict': model_state_dict,
+            'ema_state_dict': ema_state_dict,
             'optimizer_state_dict': self.optimizer.state_dict(),
             'loss_train': self.train_losses,
             'loss_val': self.val_losses,
