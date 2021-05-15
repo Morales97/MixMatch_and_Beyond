@@ -30,9 +30,10 @@ class MixMatchTrainer:
             lr, weight_decay = adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
         else:
-            lr, momentum, weight_decay = sgd
+            lr, momentum, weight_decay, lr_decay = sgd
             self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay,
                                        nesterov=True)
+            self.learning_steps = lr_decay
 
 
 
@@ -47,7 +48,7 @@ class MixMatchTrainer:
 
         self.writer = SummaryWriter()
 
-        self.learning_steps = {30_000, 60_000, 80_000}
+
 
     def train(self):
 

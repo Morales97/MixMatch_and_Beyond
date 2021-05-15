@@ -25,7 +25,7 @@ if __name__ == '__main__':
 	step_top_up = config['step_top_up']
 	optimizer = config['optimizer']
 	adam_params = adam['lr'], adam['weight_decay']
-	sgd_params = sgd['lr'], sgd['momentum'], sgd['weight_decay']
+	sgd_params = sgd['lr'], sgd['momentum'], sgd['weight_decay'], sgd['lr_decay_steps']
 
 	wideresnet_params = (params['depth'], params['k'], params['n_out'])
 
