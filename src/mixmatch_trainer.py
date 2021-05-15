@@ -29,13 +29,14 @@ class MixMatchTrainer:
         if optimizer == 'adam':
             lr, weight_decay = adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
+            self.ema = ExponentialMovingAverage(self.model.parameters(), decay=0.999)
+
         else:
             lr, momentum, weight_decay, lr_decay = sgd
             self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay,
                                        nesterov=True)
             self.learning_steps = lr_decay
-
-
+            self.ema = None
 
         self.loss_mixmatch = Loss(self.lambda_u_max, step_top_up)
         self.criterion = nn.CrossEntropyLoss()
@@ -44,11 +45,8 @@ class MixMatchTrainer:
         self.val_accuracies, self.val_losses = [], []
 
         self.mixmatch = MixMatch(self.model, self.batch_size, self.device)
-        # self.ema = ExponentialMovingAverage(self.model.parameters(), decay=0.999)
 
         self.writer = SummaryWriter()
-
-
 
     def train(self):
 
@@ -76,28 +74,19 @@ class MixMatchTrainer:
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
                 u_imgs, _ = iter_unlabeled_loader.next()
 
-
+            # Send to GPU
             x_imgs = x_imgs.to(self.device)
             x_labels = x_labels.to(self.device)
             u_imgs = u_imgs.to(self.device)
+
             # MixMatch algorithm
             x, u = self.mixmatch.run(x_imgs, x_labels, u_imgs)
-
             x_input, x_targets = x
             u_input, u_targets = u
             u_targets.detach_()  # stop gradients from propagation to label guessing. Is this necessary?
 
-            # Send to GPU
-            '''
-            x_input = x_input.to(self.device)
-            x_targets = x_targets.to(self.device)
-            u_input = u_input.to(self.device)
-            u_targets = u_targets.to(self.device)
-            '''
-
-            self.model.train()
-
             # Compute X' predictions
+            self.model.train()
             self.optimizer.zero_grad()
             x_output = self.model(x_input)
 
@@ -115,7 +104,14 @@ class MixMatchTrainer:
             # Step
             loss.backward()
             self.optimizer.step()
-            # self.ema.update(self.model.parameters())
+            if self.ema: self.ema.update(self.model.parameters())
+
+            '''
+            # Decaying learning rate. Used in with SGD Nesterov optimizer
+            if step in self.learning_steps:
+                for g in self.optimizer.param_groups:
+                    g['lr'] *= 0.2
+            '''
 
             # Evaluate model
             if not step % self.steps_validation:
@@ -133,40 +129,43 @@ class MixMatchTrainer:
                 self.writer.add_scalar("Accuracy train_label", train_acc, step)
                 self.writer.add_scalar("Accuracy validation", val_acc, step)
 
-            if step in self.learning_steps:
-                for g in self.optimizer.param_groups:
-                    g['lr'] *= 0.2
+            # Evaluate with EMA
+            if self.ema and not step % self.steps_validation:
+                # First save original parameters before replacing with EMA version
+                self.ema.store(self.model.parameters())
+                # Copy EMA parameters to model
+                self.ema.copy_to(self.model.parameters())
+                val_loss, val_acc = self.evaluate(self.val_loader)
+                train_loss, train_acc = self.evaluate(self.labeled_loader)
+                print("With EMA.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
+                      (train_loss, val_loss, train_acc, val_acc))
+                self.ema.restore(self.model.parameters())
 
+                self.writer.add_scalar("Loss train_label EMA", train_loss, step)
+                self.writer.add_scalar("Loss validation EMA", val_loss, step)
+                self.writer.add_scalar("Accuracy train_label EMA", train_acc, step)
+                self.writer.add_scalar("Accuracy validation EMA", val_acc, step)
+
+            # Save checkpoint
             if not step % self.steps_checkpoint:
                 torch.save({
                     'step': step,
                     'model_state_dict': self.model.state_dict(),
                     'optimizer_state_dict': self.optimizer.state_dict(),
                 }, '../models/checkpoint.pt')
-            """
-            # Evaluate with EMA
-            # First save original parameters before replacing with EMA version
-            self.ema.store(self.model.parameters())
-            # Copy EMA parameters to model
-            self.ema.copy_to(self.model.parameters())
-            # Evaluate model
-            if not step % self.steps_validation:
-                val_loss, val_acc = self.evaluate(self.val_loader)
-                train_loss, train_acc = self.evaluate(self.labeled_loader)
-                print("With EMA.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
-                      (train_loss, val_loss, train_acc, val_acc))
-            self.ema.restore(self.model.parameters())
-            """
 
+        # --- Training finished ---
+        # Evaluate on test set
         test_val, test_acc = self.evaluate(self.test_loader)
         print("Training done!!\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
-        """
-        self.ema.store(self.model.parameters())
-        self.ema.copy_to(self.model.parameters())
-        test_val, test_acc = self.evaluate(self.test_loader)
-        print("With EMA\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
-        self.ema.restore(self.model.parameters())
-        """
+
+        # Evalate with EMA
+        if self.ema:
+            self.ema.store(self.model.parameters())
+            self.ema.copy_to(self.model.parameters())
+            test_val, test_acc = self.evaluate(self.test_loader)
+            print("With EMA\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
+            self.ema.restore(self.model.parameters())
 
         self.writer.flush()
 
