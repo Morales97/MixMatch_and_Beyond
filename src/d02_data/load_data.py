@@ -37,11 +37,11 @@ def get_dataloaders_ssl(path="../../data", batch_size=64, num_labeled=250):
 
     # Create data loaders
     train_labeled_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
-                                                       sampler=train_labeled_sampler, num_workers=2)
+                                                       sampler=train_labeled_sampler, num_workers=0)
     train_unlabeled_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
-                                                         sampler=train_unlabeled_sampler, num_workers=2)
-    val_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, sampler=val_sampler, num_workers=2)
-    test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=2)
+                                                         sampler=train_unlabeled_sampler, num_workers=0)
+    val_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, sampler=val_sampler, num_workers=0)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     return train_labeled_loader, train_unlabeled_loader, val_loader, test_loader
 
