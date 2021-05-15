@@ -55,6 +55,7 @@ class MixMatchTrainer:
 
         for step in range(self.n_steps):
             # Get next batch of data
+
             try:
                 x_imgs, x_labels = iter_labeled_loader.next()
                 # Check if batch size has been cropped for last batch
@@ -236,13 +237,13 @@ class Loss(object):
         u_output = torch.softmax(u_output, dim=1)
 
         lx = - torch.mean(torch.sum(x_target * torch.log_softmax(x_output, dim=1), dim=1))
-        lu = mse_loss(u_output, u_target) / u_target.shape[1]
+        lu = mse_loss(u_output, u_target)
         loss = lx + lu * lambda_u
 
-        self.lx_list.append(lx)
-        self.lu_list.append(lu)
-        self.lu_weighted_list.append(lu * lambda_u)
-        self.loss_list.append(loss)
+        self.lx_list.append(lx.item())
+        self.lu_list.append(lu.item())
+        self.lu_weighted_list.append(lu.item() * lambda_u)
+        self.loss_list.append(loss.item())
         return loss
 
     def ramp_up_lambda(self, step):
