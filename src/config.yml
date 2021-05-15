@@ -18,7 +18,7 @@ MixMatchTrainer:
     lr: 0.1
     momentum: 0.9
     weight_decay: 0.0005
-    lr_decay_steps: {5_000, 10_000, 15_000}
+    lr_decay_steps: {5000, 10000, 15000}
 
 
 WideResNet:
