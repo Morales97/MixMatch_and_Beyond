@@ -7,6 +7,7 @@ from d07_visualization.viz_training import plot_acc, plot_training_loss, plot_lo
 from mixmatch_trainer import MixMatchTrainer
 
 if __name__ == '__main__':
+	print("Starting main...")
 	configuration = yaml.load(Path("config.yml").read_text(), Loader=yaml.SafeLoader)
 
 	config = configuration['MixMatchTrainer']
