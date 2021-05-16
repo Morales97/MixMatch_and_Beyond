@@ -83,10 +83,10 @@ class WideResNet(nn.Module):
         n = int((depth - 4) / 6)
         n_features = [16, 16*k, 32*k, 64*k]
 
-        self.conv1 = nn.Conv2d(3, n_features[0], kernel_size=(3, 3), padding=1)
-        self.conv_group1 = ConvGroup(n_features[0], n_features[1], blocks=n, downsample=False)
-        self.conv_group2 = ConvGroup(n_features[1], n_features[2], blocks=n)
-        self.conv_group3 = ConvGroup(n_features[2], n_features[3], blocks=n)
+        self.conv1 = nn.Conv2d(3, n_features[0], kernel_size=(3, 3), padding=1, bias=bias)
+        self.conv_group1 = ConvGroup(n_features[0], n_features[1], blocks=n, downsample=False, bias=bias)
+        self.conv_group2 = ConvGroup(n_features[1], n_features[2], blocks=n, bias=bias)
+        self.conv_group3 = ConvGroup(n_features[2], n_features[3], blocks=n, bias=bias)
         self.bn = nn.BatchNorm2d(n_features[3])
         self.relu = nn.LeakyReLU(negative_slope=0.1)
         self.avg_pool = nn.AvgPool2d(kernel_size=8)
