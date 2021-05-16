@@ -7,11 +7,11 @@ class BasicBlock(nn.Module):
 
     def __init__(self, n_features, bias):
         super(BasicBlock, self).__init__()
-        self.bn1 = nn.BatchNorm2d(n_features)   # when trying EMA with many epochs, try using BN with momentum=0.001
+        self.bn1 = nn.BatchNorm2d(n_features, momentum=0.001)   # when trying EMA with many epochs, try using BN with momentum=0.001
         self.relu = nn.LeakyReLU(negative_slope=0.1)
         self.conv1 = nn.Conv2d(n_features, n_features, kernel_size=(3, 3), padding=1, bias=bias)
 
-        self.bn2 = nn.BatchNorm2d(n_features)
+        self.bn2 = nn.BatchNorm2d(n_features, momentum=0.001)
         self.conv2 = nn.Conv2d(n_features, n_features, kernel_size=(3, 3), padding=1, bias=bias)
 
     def forward(self, x):
@@ -40,11 +40,11 @@ class TransitionBlock(nn.Module):
             stride = 1
 
         super(TransitionBlock, self).__init__()
-        self.bn1 = nn.BatchNorm2d(in_f)
+        self.bn1 = nn.BatchNorm2d(in_f, momentum=0.001)
         self.relu = nn.LeakyReLU(negative_slope=0.1)
         self.conv1 = nn.Conv2d(in_f, out_f, kernel_size=(3, 3), padding=1, stride=stride, bias=bias)
 
-        self.bn2 = nn.BatchNorm2d(out_f)
+        self.bn2 = nn.BatchNorm2d(out_f, momentum=0.001)
         self.conv2 = nn.Conv2d(out_f, out_f, kernel_size=(3, 3), padding=1, bias=bias)
 
         # Shortcut connection for identity to match dimensions
@@ -87,12 +87,12 @@ class WideResNet(nn.Module):
         self.conv_group1 = ConvGroup(n_features[0], n_features[1], blocks=n, downsample=False, bias=bias)
         self.conv_group2 = ConvGroup(n_features[1], n_features[2], blocks=n, bias=bias)
         self.conv_group3 = ConvGroup(n_features[2], n_features[3], blocks=n, bias=bias)
-        self.bn = nn.BatchNorm2d(n_features[3])
+        self.bn = nn.BatchNorm2d(n_features[3], momentum=0.001)
         self.relu = nn.LeakyReLU(negative_slope=0.1)
         self.avg_pool = nn.AvgPool2d(kernel_size=8)
         self.linear = nn.Linear(n_features[3], n_out)
 
-        
+
         # Initialize weights
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
