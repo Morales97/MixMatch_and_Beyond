@@ -7,8 +7,8 @@ class Augment:
         self.K = K
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.transform = transforms.Compose([transforms.RandomHorizontalFlip().to(self.device),
-                                            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)).to(self.device),
-                                            AddGaussianNoise(mean=0, std=0.15).to(self.device)])
+                                            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)).to(self.device)])
+                                            # AddGaussianNoise(mean=0, std=0.15).to(self.device)]
 
     def __call__(self, batch):
         augmented_batch = torch.zeros((self.K, *batch.shape), device=self.device)
