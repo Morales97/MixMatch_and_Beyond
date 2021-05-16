@@ -60,7 +60,7 @@ class MixMatch(object):
 
     def sharpen(self, q_bar):
         #q_bar = q_bar.numpy()
-        q = torch.pow(q_bar, 1 / self.T) / torch.sum(torch.pow(q_bar, 1 / self.T), axis=1)[:, np.newaxis]
+        q = torch.pow(q_bar, 1 / self.T) / torch.sum(torch.pow(q_bar, 1 / self.T), dim=1)[:, np.newaxis]
         return q
 
     def guess_label(self, u_hat):

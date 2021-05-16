@@ -27,6 +27,7 @@ class MixMatchTrainerSelfContained:
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = get_dataloaders_ssl\
             (path='../data', batch_size=batch_size, num_labeled=num_lbls)
         self.batch_size = self.labeled_loader.batch_size
+        self.beta = torch.distributions.beta.Beta(0.75, 0.75)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
 
@@ -107,19 +108,10 @@ class MixMatchTrainerSelfContained:
             w_imgs, w_labels = self.shuffle_matrices(w_imgs, w_labels)
 
             # Apply MixUp
-            x_prime, p_prime = self.mixup(x_hat, w_imgs[:self.batch_size], x_labels, w_labels[:self.batch_size])
-            u_prime, q_prime = self.mixup(u_hat, w_imgs[self.batch_size:], q, w_labels[self.batch_size:])
+            x_input, x_targets = self.mixup(x_hat, w_imgs[:self.batch_size], x_labels, w_labels[:self.batch_size])
+            u_input, u_targets = self.mixup(u_hat, w_imgs[self.batch_size:], q, w_labels[self.batch_size:])
+            u_targets = u_targets.detach()
 
-
-
-
-
-
-            # MixMatch algorithm
-            x, u = self.mixmatch.run(x_imgs, x_labels, u_imgs)
-            x_input, x_targets = x
-            u_input, u_targets = u
-            u_targets.detach_()  # stop gradients from propagation to label guessing. Is this necessary?
 
             # Compute X' predictions
             self.model.train()
@@ -263,7 +255,7 @@ class MixMatchTrainerSelfContained:
         return x_prime, p_prime
 
     def sharpen(self, q_bar):
-        q = torch.pow(q_bar, 1 / self.T) / torch.sum(torch.pow(q_bar, 1 / self.T), axis=1)[:, np.newaxis]
+        q = torch.pow(q_bar, 1 / self.T) / torch.sum(torch.pow(q_bar, 1 / self.T), dim=1)[:, np.newaxis]
         return q
 
     def guess_label(self, u_hat):
@@ -278,7 +270,7 @@ class MixMatchTrainerSelfContained:
         return q_bar
 
     def one_hot_encoding(self, labels):
-        shape = (labels.shape[0], self.n_labels)
+        shape = (labels.shape[0], self.n_out)
         one_hot = torch.zeros(shape, dtype=torch.float32, device=self.device)
         rows = torch.arange(labels.shape[0])
         one_hot[rows, labels] = 1
