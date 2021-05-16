@@ -14,15 +14,15 @@ MixMatchTrainer:
   steps_validation: 500 # steps to print validation losses and accuracy
   steps_checkpoint: 5000
 
-  optimizer: 'adam'
+  optimizer: 'sgd'
   adam:
     lr: 0.002
     weight_decay: 0.0004
   sgd:
-    lr: 0.1
+    lr: 0.03
     momentum: 0.9
     weight_decay: 0.0005
-    lr_decay_steps: {5000, 10000, 15000}
+    lr_decay_steps: {5000, 7500}
 
 
 WideResNet:

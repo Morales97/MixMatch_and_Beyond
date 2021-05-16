@@ -52,19 +52,13 @@ class FullySupervisedTrainer:
 
         for step in range(self.n_steps):
             # Get next batch of data
-            """
+
             try:
                 x_input, x_labels = iter_train_loader.next()
                 # Check if batch size has been cropped for last batch
                 if x_input.shape[0] < self.batch_size:
                     iter_train_loader = iter(self.train_loader)
-                    x_imgs, x_labels = iter_train_loader.next()
-            except:
-                iter_train_loader = iter(self.train_loader)
-                x_input, x_labels = iter_train_loader.next()
-            """
-            try:
-                x_input, x_labels = iter_train_loader.next()
+                    x_input, x_labels = iter_train_loader.next()
             except:
                 iter_train_loader = iter(self.train_loader)
                 x_input, x_labels = iter_train_loader.next()
@@ -86,12 +80,10 @@ class FullySupervisedTrainer:
             self.optimizer.step()
             if self.ema: self.ema.update(self.model.parameters())
 
-            '''
             # Decaying learning rate. Used in with SGD Nesterov optimizer
-            if step in self.learning_steps:
+            if not self.ema and step in self.learning_steps:
                 for g in self.optimizer.param_groups:
                     g['lr'] *= 0.2
-            '''
 
             # Evaluate model
             if not step % self.steps_validation:
