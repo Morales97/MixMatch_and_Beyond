@@ -71,7 +71,7 @@ class FullySupervisedTrainer:
             x_labels = x_labels.to(self.device)
 
             # Augment
-            x_input = self.augment(x_input)
+            x_input = self.augment(x_input[0])
 
             # Compute X' predictions
             self.model.train()

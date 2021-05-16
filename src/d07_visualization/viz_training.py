@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_training_loss(loss_train, loss_test):
-    x = np.linspace(1, len(loss_train), len(loss_train))
+def plot_training_loss(loss_train, loss_test, step=1):
+    x = np.linspace(1, len(loss_train)*step, len(loss_train))
     plt.plot(x, loss_train, label='Training')
     plt.plot(x, loss_test, label='Validation')
     plt.title('Loss function')
@@ -14,8 +14,8 @@ def plot_training_loss(loss_train, loss_test):
     #plt.show()
 
 
-def plot_acc(acc_train, acc_test):
-    x = np.linspace(1, len(acc_train), len(acc_train))
+def plot_acc(acc_train, acc_test, step=1):
+    x = np.linspace(1, len(acc_train)*step, len(acc_train))
     plt.plot(x, acc_train, label='Training')
     plt.plot(x, acc_test, label='Validation')
     plt.title('Accuracy')
