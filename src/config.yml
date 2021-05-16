@@ -17,7 +17,7 @@ MixMatchTrainer:
   optimizer: 'adam'
   adam:
     lr: 0.002
-    weight_decay: 0 # 0.0004
+    weight_decay: 0.0004
   sgd:
     lr: 0.03
     momentum: 0.9

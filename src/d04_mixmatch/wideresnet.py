@@ -92,7 +92,7 @@ class WideResNet(nn.Module):
         self.avg_pool = nn.AvgPool2d(kernel_size=8)
         self.linear = nn.Linear(n_features[3], n_out)
 
-
+        
         # Initialize weights
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
