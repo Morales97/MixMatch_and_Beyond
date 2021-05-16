@@ -4,7 +4,7 @@ cifar_10:
   num_labeled: 250
 
 MixMatchTrainer:
-  n_steps: 1
+  n_steps: 25000
   K: 2
 
   lambda_u:
