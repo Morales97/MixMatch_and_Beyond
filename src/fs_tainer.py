@@ -52,12 +52,19 @@ class FullySupervisedTrainer:
 
         for step in range(self.n_steps):
             # Get next batch of data
+            """
             try:
                 x_input, x_labels = iter_train_loader.next()
                 # Check if batch size has been cropped for last batch
                 if x_input.shape[0] < self.batch_size:
                     iter_train_loader = iter(self.train_loader)
                     x_imgs, x_labels = iter_train_loader.next()
+            except:
+                iter_train_loader = iter(self.train_loader)
+                x_input, x_labels = iter_train_loader.next()
+            """
+            try:
+                x_input, x_labels = iter_train_loader.next()
             except:
                 iter_train_loader = iter(self.train_loader)
                 x_input, x_labels = iter_train_loader.next()
