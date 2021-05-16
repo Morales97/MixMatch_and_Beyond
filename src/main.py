@@ -48,6 +48,14 @@ if __name__ == '__main__':
 
     trainer.save_model()
 
-    plot_training_loss(trainer.train_losses, trainer.val_losses)
-    plot_acc(trainer.train_accuracies, trainer.val_accuracies)
+    # plot_training_loss(trainer.train_losses, trainer.val_losses)
+    # plot_acc(trainer.train_accuracies, trainer.val_accuracies)
     # plot_losses(*trainer.get_losses())
+
+    trainer_fs = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
+                                    steps_validation, steps_checkpoint)
+
+    trainer_fs.train()
+
+    trainer_fs.save_model()
+    

@@ -106,6 +106,8 @@ class MixMatchTrainer:
 
             # Step
             loss.backward()
+            # !!! CLIP GRADIENTS TO 1 !!! Try to avoid exploiting gradients
+            nn.utils.clip_grad_norm(self.model.parameters(), 1)
             self.optimizer.step()
             if self.ema: self.ema.update(self.model.parameters())
 

@@ -9,7 +9,7 @@ from d02_data.load_data import get_dataloaders_ssl
 from d03_processing.transform_data import Augment
 from d04_mixmatch.wideresnet import WideResNet
 from d04_mixmatch.model_repo import WideResNetRepo
-from d04_mixmatch.wideresnet_no_bias import WideResNetUnbias
+from d04_mixmatch.wideresnet_funnel import WideResNetFunnel
 
 
 class FullySupervisedTrainer:
@@ -31,7 +31,7 @@ class FullySupervisedTrainer:
         # self.model = WideResNet(depth=depth, k=k, n_out=n_out).to(self.device)
         # Model from https://github.com/YU1ut/MixMatch-pytorch/blob/master/models/wideresnet.py
         # self.model = WideResNetRepo(num_classes=n_out).to(self.device)
-        self.model = WideResNetUnbias(depth=depth, k=k, n_out=n_out).to(self.device)
+        self.model = WideResNetFunnel(depth=depth, k=k, n_out=n_out).to(self.device)
         if optimizer == 'adam':
             lr, weight_decay = adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -193,4 +193,4 @@ class FullySupervisedTrainer:
             'loss_val': self.val_losses,
             'acc_train': self.train_accuracies,
             'acc_val': self.val_accuracies,
-        }, '../models/model.pt')
+        }, '../models/model_fs_funnel.pt')
