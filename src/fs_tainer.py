@@ -6,6 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from d01_utils.torch_ema import ExponentialMovingAverage
 from d02_data.load_data import get_dataloaders_ssl
+from d03_processing.transform_data import Augment
 from d04_mixmatch.wideresnet import WideResNet
 
 
@@ -43,6 +44,8 @@ class FullySupervisedTrainer:
         self.train_accuracies, self.train_losses = [], []
         self.val_accuracies, self.val_losses = [], []
 
+        self.augment = Augment(K=1)
+
         self.writer = SummaryWriter()
 
 
@@ -66,6 +69,9 @@ class FullySupervisedTrainer:
             # Send to GPU
             x_input = x_input.to(self.device)
             x_labels = x_labels.to(self.device)
+
+            # Augment
+            x_input = self.augment(x_input)
 
             # Compute X' predictions
             self.model.train()
