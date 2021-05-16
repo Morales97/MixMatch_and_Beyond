@@ -8,6 +8,7 @@ from d01_utils.torch_ema import ExponentialMovingAverage
 from d02_data.load_data import get_dataloaders_ssl
 from d03_processing.transform_data import Augment
 from d04_mixmatch.wideresnet import WideResNet
+from d04_mixmatch.model_repo import WideResNetRepo
 
 
 class FullySupervisedTrainer:
@@ -26,7 +27,9 @@ class FullySupervisedTrainer:
         print(self.device)
 
         depth, k, n_out = model_params
-        self.model = WideResNet(depth=depth, k=k, n_out=n_out).to(self.device)
+        # self.model = WideResNet(depth=depth, k=k, n_out=n_out).to(self.device)
+        # Model from https://github.com/YU1ut/MixMatch-pytorch/blob/master/models/wideresnet.py
+        self.model = WideResNetRepo(num_classes=n_out).to(self.device)
         if optimizer == 'adam':
             lr, weight_decay = adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)

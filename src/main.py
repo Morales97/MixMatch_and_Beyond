@@ -30,11 +30,11 @@ if __name__ == '__main__':
 
     wideresnet_params = (params['depth'], params['k'], params['n_out'])
 
-    trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
-                              optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
+    # trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
+    #                          optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
 
-    # trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
-    #                                 steps_validation, steps_checkpoint)
+    trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
+                                    steps_validation, steps_checkpoint)
 
     start_time = time.time()
 
