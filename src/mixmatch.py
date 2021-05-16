@@ -64,14 +64,14 @@ class MixMatch(object):
         return q
 
     def guess_label(self, u_hat):
-        self.model.eval()
+        # self.model.eval()
         with torch.no_grad():
             q_bar = torch.zeros([self.batch_size, self.n_labels], device=self.device)
             for k in range(self.K):
                 q_bar += self.softmax(self.model(u_hat[k]))
             q_bar /= self.K
 
-        self.model.train()
+        # self.model.train()
         return q_bar
 
     def one_hot_encoding(self, labels):

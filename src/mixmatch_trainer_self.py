@@ -3,20 +3,25 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
 from d01_utils.torch_ema import ExponentialMovingAverage
 from d02_data.load_data import get_dataloaders_ssl
+from d03_processing.transform_data import Augment
 from d04_mixmatch.wideresnet import WideResNet
 from mixmatch import MixMatch
 
 
-class MixMatchTrainer:
+class MixMatchTrainerSelfContained:
+    "No MixMatch object"
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
                  sgd, steps_validation, steps_checkpoint):
 
         self.n_steps = n_steps
         self.K = K
+        self.T = 2
+        self.softmax = nn.Softmax(dim=1)
         self.steps_validation = steps_validation
         self.steps_checkpoint = steps_checkpoint
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = get_dataloaders_ssl\
@@ -25,8 +30,8 @@ class MixMatchTrainer:
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
 
-        depth, k, n_out = model_params
-        self.model = WideResNet(depth=depth, k=k, n_out=n_out).to(self.device)
+        depth, k, self.n_out = model_params
+        self.model = WideResNet(depth=depth, k=k, n_out=self.n_out).to(self.device)
         if optimizer == 'adam':
             lr, weight_decay = adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -46,12 +51,9 @@ class MixMatchTrainer:
         self.train_accuracies, self.train_losses = [], []
         self.val_accuracies, self.val_losses = [], []
 
-        self.mixmatch = MixMatch(self.model, self.batch_size, self.device)
-
         self.writer = SummaryWriter()
 
     def train(self):
-        self.model.train()
 
         iter_labeled_loader = iter(self.labeled_loader)
         iter_unlabeled_loader = iter(self.unlabeled_loader)
@@ -83,6 +85,36 @@ class MixMatchTrainer:
             x_labels = x_labels.to(self.device)
             u_imgs = u_imgs.to(self.device)
 
+            x_labels = self.one_hot_encoding(x_labels)
+
+            # Augment
+            augment_once = Augment(K=1)
+            augment_k = Augment(K=self.K)
+            x_hat = augment_once(x_imgs)  # shape (1, batch_size, 3, 32, 32)
+            u_hat = augment_k(u_imgs)  # shape (K, batch_size, 3, 32, 32)
+
+            # Generate guessed labels
+            q_bar = self.guess_label(u_hat)
+            q = self.sharpen(q_bar)  # shape (K, batch_size, 10)
+
+            x_hat = x_hat.reshape((-1, 3, 32, 32))  # shape (batch_size, 3, 32, 32)
+            u_hat = u_hat.reshape((-1, 3, 32, 32))  # shape (K*batch_size, 3, 32, 32)
+            q = q.repeat(self.K, 1, 1).reshape(-1, 10)  # shape (K*batch_size, 10)
+
+            # Concat and shuffle
+            w_imgs = torch.cat((x_hat, u_hat))
+            w_labels = torch.cat((x_labels, q))
+            w_imgs, w_labels = self.shuffle_matrices(w_imgs, w_labels)
+
+            # Apply MixUp
+            x_prime, p_prime = self.mixup(x_hat, w_imgs[:self.batch_size], x_labels, w_labels[:self.batch_size])
+            u_prime, q_prime = self.mixup(u_hat, w_imgs[self.batch_size:], q, w_labels[self.batch_size:])
+
+
+
+
+
+
             # MixMatch algorithm
             x, u = self.mixmatch.run(x_imgs, x_labels, u_imgs)
             x_input, x_targets = x
@@ -90,6 +122,7 @@ class MixMatchTrainer:
             u_targets.detach_()  # stop gradients from propagation to label guessing. Is this necessary?
 
             # Compute X' predictions
+            self.model.train()
             self.optimizer.zero_grad()
             x_output = self.model(x_input)
 
@@ -219,6 +252,45 @@ class MixMatchTrainer:
             'lu': lu,
             'lu_weighted': lu_weighted,
         }, '../models/model.pt')
+
+    def mixup(self, x1, x2, p1, p2):
+        n_samples = x1.shape[0]
+        lambda_rand = self.beta.sample([n_samples, 1, 1, 1]).to(self.device)  # one lambda per sample
+        lambda_prime = torch.max(lambda_rand, 1 - lambda_rand).to(self.device)
+        x_prime = lambda_prime * x1 + (1 - lambda_prime) * x2
+        lambda_prime = lambda_prime.reshape(-1, 1)
+        p_prime = lambda_prime * p1 + (1 - lambda_prime) * p2
+        return x_prime, p_prime
+
+    def sharpen(self, q_bar):
+        q = torch.pow(q_bar, 1 / self.T) / torch.sum(torch.pow(q_bar, 1 / self.T), axis=1)[:, np.newaxis]
+        return q
+
+    def guess_label(self, u_hat):
+        self.model.eval()
+        with torch.no_grad():
+            q_bar = torch.zeros([self.batch_size, self.n_out], device=self.device)
+            for k in range(self.K):
+                q_bar += self.softmax(self.model(u_hat[k]))
+            q_bar /= self.K
+
+        self.model.train()
+        return q_bar
+
+    def one_hot_encoding(self, labels):
+        shape = (labels.shape[0], self.n_labels)
+        one_hot = torch.zeros(shape, dtype=torch.float32, device=self.device)
+        rows = torch.arange(labels.shape[0])
+        one_hot[rows, labels] = 1
+        return one_hot
+
+    # shuffles along the first axis (axis 0)
+    def shuffle_matrices(self, m1, m2):
+        n_samples = m1.shape[0]
+        rand_indexes = torch.randperm(n_samples)
+        m1 = m1[rand_indexes]
+        m2 = m2[rand_indexes]
+        return m1, m2
 
 
 class Loss(object):
