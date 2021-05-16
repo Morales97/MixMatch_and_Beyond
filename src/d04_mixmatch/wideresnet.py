@@ -120,7 +120,8 @@ class WideResNet(nn.Module):
 
 
 if __name__ == '__main__':
-
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = WideResNet(depth=28, k=2, n_out=10)
+    model.to(device)
     summary(model, (3, 32, 32))
 
