@@ -5,14 +5,14 @@ import math
 
 class BasicBlock(nn.Module):
 
-    def __init__(self, n_features):
+    def __init__(self, n_features, bias):
         super(BasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(n_features)   # when trying EMA with many epochs, try using BN with momentum=0.001
         self.relu = nn.LeakyReLU(negative_slope=0.1)
-        self.conv1 = nn.Conv2d(n_features, n_features, kernel_size=(3, 3), padding=1)
+        self.conv1 = nn.Conv2d(n_features, n_features, kernel_size=(3, 3), padding=1, bias=bias)
 
         self.bn2 = nn.BatchNorm2d(n_features)
-        self.conv2 = nn.Conv2d(n_features, n_features, kernel_size=(3, 3), padding=1)
+        self.conv2 = nn.Conv2d(n_features, n_features, kernel_size=(3, 3), padding=1, bias=bias)
 
     def forward(self, x):
         x = self.relu(self.bn1(x))
@@ -32,7 +32,7 @@ class TransitionBlock(nn.Module):
         - Downsample input by 2 using conv of stride=2
         - Adapt number of features using 1x1 filters
     """
-    def __init__(self, in_f, out_f, downsample):
+    def __init__(self, in_f, out_f, downsample, bias):
 
         if downsample:
             stride = 2
@@ -42,13 +42,13 @@ class TransitionBlock(nn.Module):
         super(TransitionBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_f)
         self.relu = nn.LeakyReLU(negative_slope=0.1)
-        self.conv1 = nn.Conv2d(in_f, out_f, kernel_size=(3, 3), padding=1, stride=stride)
+        self.conv1 = nn.Conv2d(in_f, out_f, kernel_size=(3, 3), padding=1, stride=stride, bias=bias)
 
         self.bn2 = nn.BatchNorm2d(out_f)
-        self.conv2 = nn.Conv2d(out_f, out_f, kernel_size=(3, 3), padding=1)
+        self.conv2 = nn.Conv2d(out_f, out_f, kernel_size=(3, 3), padding=1, bias=bias)
 
         # Shortcut connection for identity to match dimensions
-        self.shortcut = nn.Conv2d(in_f, out_f, kernel_size=(1, 1), stride=stride)
+        self.shortcut = nn.Conv2d(in_f, out_f, kernel_size=(1, 1), stride=stride, bias=bias)
 
     def forward(self, x):
         x = self.relu(self.bn1(x))
@@ -64,11 +64,11 @@ class TransitionBlock(nn.Module):
 
 class ConvGroup(nn.Module):
 
-    def __init__(self, in_features, out_features, blocks, downsample=True):
+    def __init__(self, in_features, out_features, blocks, bias, downsample=True):
         super(ConvGroup, self).__init__()
 
-        self.conv_blocks = nn.Sequential(TransitionBlock(in_features, out_features, downsample),
-                                         *[BasicBlock(out_features) for _ in range(blocks - 1)])
+        self.conv_blocks = nn.Sequential(TransitionBlock(in_features, out_features, downsample, bias),
+                                         *[BasicBlock(out_features, bias) for _ in range(blocks - 1)])
 
     def forward(self, x):
         return self.conv_blocks(x)
@@ -76,7 +76,7 @@ class ConvGroup(nn.Module):
 
 class WideResNet(nn.Module):
 
-    def __init__(self, depth, k, n_out):
+    def __init__(self, depth, k, n_out, bias=True):
         super(WideResNet, self).__init__()
 
         assert (depth - 4) % 6 == 0, "depth must be 6*n + 4"
@@ -92,7 +92,7 @@ class WideResNet(nn.Module):
         self.avg_pool = nn.AvgPool2d(kernel_size=8)
         self.linear = nn.Linear(n_features[3], n_out)
 
-        """
+
         # Initialize weights
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -104,7 +104,7 @@ class WideResNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight.data)
                 m.bias.data.zero_()
-        """
+
 
     def forward(self, x):
         x = self.conv1(x)
