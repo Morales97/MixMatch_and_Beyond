@@ -109,12 +109,10 @@ class MixMatchTrainer:
             self.optimizer.step()
             if self.ema: self.ema.update(self.model.parameters())
 
-            '''
             # Decaying learning rate. Used in with SGD Nesterov optimizer
-            if step in self.learning_steps:
+            if not self.ema and step in self.learning_steps:
                 for g in self.optimizer.param_groups:
                     g['lr'] *= 0.2
-            '''
 
             # Evaluate model
             if not step % self.steps_validation:
