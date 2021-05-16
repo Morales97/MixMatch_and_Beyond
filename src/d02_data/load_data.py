@@ -57,7 +57,7 @@ def labeled_unlabeled_val_split(labels, n_labeled_per_class):
         np.random.shuffle(idxs)
         train_labeled_idxs.extend(idxs[:n_labeled_per_class])
         train_unlabeled_idxs.extend(idxs[n_labeled_per_class:-500])
-        val_idxs.extend(idxs[-500:])
+        val_idxs.extend(idxs[-500:])    # 5000 validation samples
     np.random.shuffle(train_labeled_idxs)
     np.random.shuffle(train_unlabeled_idxs)
     np.random.shuffle(val_idxs)

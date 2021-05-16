@@ -5,21 +5,22 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
 from d01_utils.torch_ema import ExponentialMovingAverage
+from d02_data.load_data import get_dataloaders_ssl
 from d04_mixmatch.wideresnet import WideResNet
 from mixmatch import MixMatch
 
 
 class MixMatchTrainer:
 
-    def __init__(self, data, model_params, n_steps, K, lambda_u_max, steps_validation, step_top_up, optimizer, adam,
-                 sgd, steps_checkpoint):
+    def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
+                 sgd, steps_validation, steps_checkpoint):
 
         self.n_steps = n_steps
         self.K = K
-        self.lambda_u_max = lambda_u_max
         self.steps_validation = steps_validation
         self.steps_checkpoint = steps_checkpoint
-        self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = data
+        self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = get_dataloaders_ssl\
+            (path='../data', batch_size=batch_size, num_labeled=num_lbls)
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
@@ -38,7 +39,8 @@ class MixMatchTrainer:
             self.learning_steps = lr_decay
             self.ema = None
 
-        self.loss_mixmatch = Loss(self.lambda_u_max, step_top_up)
+        self.lambda_u_max, self.step_top_up = lambda_u
+        self.loss_mixmatch = Loss(self.lambda_u_max, self.step_top_up)
         self.criterion = nn.CrossEntropyLoss()
 
         self.train_accuracies, self.train_losses = [], []

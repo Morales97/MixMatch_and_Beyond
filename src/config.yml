@@ -4,12 +4,16 @@ cifar_10:
   num_labeled: 250
 
 MixMatchTrainer:
-  n_steps: 50000
+  n_steps: 10000
   K: 2
-  lambda_u_max: 75
+
+  lambda_u:
+    lambda_u_max: 75
+    step_top_up: 8000 # 16000
+
   steps_validation: 500 # steps to print validation losses and accuracy
   steps_checkpoint: 5000
-  step_top_up: 8000 # 16000
+
   optimizer: 'adam'
   adam:
     lr: 0.002
