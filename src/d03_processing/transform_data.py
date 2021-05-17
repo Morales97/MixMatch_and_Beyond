@@ -44,14 +44,14 @@ class RandomCrop(torch.nn.Module):
         self.max_crop = max_crop
 
     def forward(self, img):
-        h, w = img.shape[1:]
+        h, w = img.shape[2:]
         crop_size = np.random.randint(1, self.max_crop)
-        img = np.pad(img, [(0, 0), (crop_size, crop_size), (crop_size, crop_size)], mode='reflect')
+        img = np.pad(img, [(0, 0), (0, 0), (crop_size, crop_size), (crop_size, crop_size)], mode='reflect')
 
         top = np.random.randint(0, crop_size)
         left = np.random.randint(0, crop_size)
 
-        img = img[:, top: top + h, left: left + w]
+        img = img[:,:, top: top + h, left: left + w]
         return torch.from_numpy(img)
 
 
