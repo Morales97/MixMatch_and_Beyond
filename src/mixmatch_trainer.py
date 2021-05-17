@@ -27,8 +27,8 @@ class MixMatchTrainer:
         print(self.device)
 
         depth, k, n_out = model_params
-        # self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
-        self.model = WideResNetRepo(num_classes=n_out).to(self.device)
+        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
+        # self.model = WideResNetRepo(num_classes=n_out).to(self.device)
         if optimizer == 'adam':
             lr, weight_decay = adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -109,7 +109,7 @@ class MixMatchTrainer:
             # Step
             loss.backward()
             # !!! CLIP GRADIENTS TO 1 !!! Try to avoid exploiting gradients
-            nn.utils.clip_grad_norm(self.model.parameters(), 1)
+            # nn.utils.clip_grad_norm(self.model.parameters(), 1)
             self.optimizer.step()
             if self.ema: self.ema.update(self.model.parameters())
 
