@@ -1,12 +1,10 @@
 from pathlib import Path
 import yaml
 import time
+import datetime
 
-from d02_data.load_data import get_dataloaders_ssl
 from d07_visualization.viz_training import plot_acc, plot_training_loss, plot_losses
 from mixmatch_trainer import MixMatchTrainer
-from mixmatch_trainer_ema import MixMatchTrainerEMA
-from mixmatch_trainer_self import MixMatchTrainerSelfContained
 from fs_tainer import FullySupervisedTrainer
 
 if __name__ == '__main__':
@@ -32,15 +30,9 @@ if __name__ == '__main__':
 
     wideresnet_params = (params['depth'], params['k'], params['n_out'])
 
-    # trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
-    #                          optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
 
-    trainer = MixMatchTrainerEMA(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
-                             optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
-
-    # Has no MixMatch class, all is implemented in the trainer
-    # trainer = MixMatchTrainerSelfContained(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
-    #                          optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
+    trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
+                              optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
 
     # trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
     #                                 steps_validation, steps_checkpoint)
@@ -49,7 +41,8 @@ if __name__ == '__main__':
 
     trainer.train()
 
-    print("--- %s seconds ---" % (time.time() - start_time))
+    seconds = time.time() - start_time
+    print("Time elapsed: " + str(datetime.timedelta(seconds=seconds)))
 
     trainer.save_model()
 

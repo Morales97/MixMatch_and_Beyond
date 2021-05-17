@@ -4,11 +4,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
-from d01_utils.torch_ema import ExponentialMovingAverage
 from d02_data.load_data import get_dataloaders_ssl
 from d03_processing.transform_data import Augment
 from d04_mixmatch.wideresnet import WideResNet
-from d04_mixmatch.model_repo import WideResNetRepo
 from d04_mixmatch.wideresnet_funnel import WideResNetFunnel
 
 
@@ -35,14 +33,12 @@ class FullySupervisedTrainer:
         if optimizer == 'adam':
             lr, weight_decay = adam
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
-            self.ema = ExponentialMovingAverage(self.model.parameters(), decay=0.999)
 
         else:
             lr, momentum, weight_decay, lr_decay = sgd
             self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay,
                                        nesterov=True)
             self.learning_steps = lr_decay
-            self.ema = None
 
         self.criterion = nn.CrossEntropyLoss()
 
@@ -90,20 +86,15 @@ class FullySupervisedTrainer:
             # Step
             loss.backward()
             self.optimizer.step()
-            if self.ema: self.ema.update(self.model.parameters())
 
             # Decaying learning rate. Used in with SGD Nesterov optimizer
-            if not self.ema and step in self.learning_steps:
+            if step in self.learning_steps:
                 for g in self.optimizer.param_groups:
                     g['lr'] *= 0.2
 
             # Evaluate model
             if not step % self.steps_validation:
                 self.evaluate_no_ema(step)
-
-            # Evaluate with EMA
-            if self.ema and not step % self.steps_validation:
-                self.evaluate_ema(step)
 
             # Save checkpoint
             if not step % self.steps_checkpoint:
@@ -117,14 +108,6 @@ class FullySupervisedTrainer:
         # Evaluate on test set
         test_val, test_acc = self.evaluate(self.test_loader)
         print("Training done!!\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
-
-        # Evaluate with EMA
-        if self.ema:
-            self.ema.store(self.model.parameters())
-            self.ema.copy_to(self.model.parameters())
-            test_val, test_acc = self.evaluate(self.test_loader)
-            print("With EMA\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
-            self.ema.restore(self.model.parameters())
 
         self.writer.flush()
 
@@ -145,22 +128,6 @@ class FullySupervisedTrainer:
         self.writer.add_scalar("Accuracy train_label", train_acc, step)
         self.writer.add_scalar("Accuracy validation", val_acc, step)
 
-    def evaluate_ema(self, step):
-        # First save original parameters before replacing with EMA version
-        self.ema.store(self.model.parameters())
-        # Copy EMA parameters to model
-        self.ema.copy_to(self.model.parameters())
-        val_loss, val_acc = self.evaluate(self.val_loader)
-        train_loss, train_acc = self.evaluate(self.train_loader)
-        print("With EMA.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
-              (train_loss, val_loss, train_acc, val_acc))
-        self.ema.restore(self.model.parameters())
-
-        self.writer.add_scalar("Loss train_label EMA", train_loss, step)
-        self.writer.add_scalar("Loss validation EMA", val_loss, step)
-        self.writer.add_scalar("Accuracy train_label EMA", train_acc, step)
-        self.writer.add_scalar("Accuracy validation EMA", val_acc, step)
-
     def evaluate(self, dataloader):
         self.model.eval()
         correct, total, loss = 0, 0, 0
@@ -180,14 +147,9 @@ class FullySupervisedTrainer:
 
     def save_model(self):
         model_state_dict = self.model.state_dict()
-        ema_state_dict = None
-        if self.ema:
-            self.ema.copy_to(self.model.parameters())
-            ema_state_dict = self.model.state_dict()
 
         torch.save({
             'model_state_dict': model_state_dict,
-            'ema_state_dict': ema_state_dict,
             'optimizer_state_dict': self.optimizer.state_dict(),
             'loss_train': self.train_losses,
             'loss_val': self.val_losses,
