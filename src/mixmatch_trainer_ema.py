@@ -28,8 +28,8 @@ class MixMatchTrainerEMA:
         print(self.device)
 
         depth, k, n_out = model_params
-        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
-        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
+        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
+        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
         for param in self.ema_model.parameters():
             param.detach_()
 
@@ -97,7 +97,6 @@ class MixMatchTrainerEMA:
             u_targets.detach_()  # stop gradients from propagation to label guessing. Is this necessary?
 
             # Compute X' predictions
-            self.optimizer.zero_grad()
             x_output = self.model(x_input)
 
             # Compute U' predictions
@@ -112,6 +111,7 @@ class MixMatchTrainerEMA:
             loss = self.loss_mixmatch(x_output, x_targets, u_outputs, u_targets, step)
 
             # Step
+            self.optimizer.zero_grad()
             loss.backward()
             # !!! CLIP GRADIENTS TO 1 !!! Try to avoid exploiting gradients
             # nn.utils.clip_grad_norm(self.model.parameters(), 1)
