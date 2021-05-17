@@ -52,7 +52,6 @@ class RandomCrop(torch.nn.Module):
 
         for i in range(img.shape[0]):
             top = np.random.randint(0, crop_size * 2)
-            print(top)
             left = np.random.randint(0, crop_size * 2)
 
             img[i] = imgaux[i, :, top: top + h, left: left + w]
