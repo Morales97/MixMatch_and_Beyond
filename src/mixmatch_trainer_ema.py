@@ -58,14 +58,14 @@ class MixMatchTrainerEMA:
         self.writer = SummaryWriter()
 
     def train(self):
-        self.model.train()
+
 
         iter_labeled_loader = iter(self.labeled_loader)
         iter_unlabeled_loader = iter(self.unlabeled_loader)
 
         for step in range(self.n_steps):
             # Get next batch of data
-
+            self.model.train()
             try:
                 x_imgs, x_labels = iter_labeled_loader.next()
                 # Check if batch size has been cropped for last batch
