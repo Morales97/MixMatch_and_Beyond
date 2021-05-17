@@ -31,11 +31,12 @@ if __name__ == '__main__':
 
     wideresnet_params = (params['depth'], params['k'], params['n_out'])
 
-    # trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
-    #                          optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
-
-    trainer = MixMatchTrainerSelfContained(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
+    trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
                              optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
+
+    # Has no MixMatch class, all is implemented in the trainer
+    # trainer = MixMatchTrainerSelfContained(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
+    #                          optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
 
     # trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
     #                                 steps_validation, steps_checkpoint)
@@ -51,11 +52,3 @@ if __name__ == '__main__':
     # plot_training_loss(trainer.train_losses, trainer.val_losses)
     # plot_acc(trainer.train_accuracies, trainer.val_accuracies)
     # plot_losses(*trainer.get_losses())
-
-    trainer_fs = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
-                                    steps_validation, steps_checkpoint)
-
-    trainer_fs.train()
-
-    trainer_fs.save_model()
-    
