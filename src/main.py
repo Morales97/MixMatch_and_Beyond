@@ -40,12 +40,13 @@ if __name__ == '__main__':
 
     start_time = time.time()
 
+    '''
     model_name = '250_lbl_40k_steps_bias_trans.pt'
     saved_model = torch.load(f'{model_name}')
-    trainer.load_checkpoint(saved_model['model_state_dict'],
-                            saved_model['ema_model_state_dict'],
+    trainer.load_checkpoint(saved_model['model_state_dict'], 
+                            saved_model['ema_model_state_dict'], 
                             saved_model['optimzer_state_dict'])
-
+    '''
 
     trainer.train()
 

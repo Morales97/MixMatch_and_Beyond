@@ -1,10 +1,10 @@
 cifar_10:
   batch_size: 64
   num_outputs: 10
-  num_labeled: 250
+  num_labeled: 4000
 
 MixMatchTrainer:
-  n_steps: 40000
+  n_steps: 100000
   K: 2
 
   lambda_u:
