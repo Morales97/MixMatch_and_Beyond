@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     start_time = time.time()
 
-    trainer.load_checkpoint('250_lbl_40k_steps_bias_trans.pt')
+    # trainer.load_checkpoint('250_lbl_40k_steps_bias_trans.pt')
 
     trainer.train()
 
