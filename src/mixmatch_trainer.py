@@ -12,7 +12,7 @@ from mixmatch import MixMatch
 class MixMatchTrainer:
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
-                 sgd, steps_validation, steps_checkpoint):
+                 sgd, steps_validation, steps_checkpoint, model_state_dict=None, ema_state_dict=None, optim_state_dict=None):
 
         self.n_steps = n_steps
         self.K = K
@@ -30,6 +30,7 @@ class MixMatchTrainer:
         self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
         for param in self.ema_model.parameters():
             param.detach_()
+
 
         if optimizer == 'adam':
             self.lr, self.weight_decay = adam
@@ -54,6 +55,11 @@ class MixMatchTrainer:
         self.mixmatch = MixMatch(self.model, self.batch_size, self.device)
 
         self.writer = SummaryWriter()
+
+    def load_checkpoint(self, model_state_dict, ema_state_dict, optim_state_dict):
+        self.model.load_state_dict(model_state_dict)
+        self.ema_model.load_state_dict(ema_state_dict)
+        self.optimizer.load_state_dict(optim_state_dict)
 
     def train(self):
 
@@ -179,12 +185,10 @@ class MixMatchTrainer:
 
     def save_model(self):
         loss_list, lx, lu, lu_weighted = self.get_losses()
-        model_state_dict = self.model.state_dict()
-        ema_state_dict = self.ema_model.state_dict()
 
         torch.save({
-            'model_state_dict': model_state_dict,
-            'ema_state_dict': ema_state_dict,
+            'model_state_dict': self.model.state_dict(),
+            'ema_state_dict': self.ema_model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'loss_train': self.train_losses,
             'loss_val': self.val_losses,

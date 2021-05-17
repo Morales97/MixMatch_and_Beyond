@@ -2,6 +2,7 @@ from pathlib import Path
 import yaml
 import time
 import datetime
+import torch
 
 from d07_visualization.viz_training import plot_acc, plot_training_loss, plot_losses
 from mixmatch_trainer import MixMatchTrainer
@@ -38,6 +39,13 @@ if __name__ == '__main__':
     #                                 steps_validation, steps_checkpoint)
 
     start_time = time.time()
+
+    model_name = '250_lbl_40k_steps_bias_trans.pt'
+    saved_model = torch.load(f'{model_name}')
+    trainer.load_checkpoint(saved_model['model_state_dict'],
+                            saved_model['ema_model_state_dict'],
+                            saved_model['optimzer_state_dict'])
+
 
     trainer.train()
 
