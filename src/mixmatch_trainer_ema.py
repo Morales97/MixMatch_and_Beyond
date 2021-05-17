@@ -11,7 +11,7 @@ from d04_mixmatch.model_repo import WideResNetRepo
 from mixmatch import MixMatch
 
 
-class MixMatchTrainer:
+class MixMatchTrainerEMA:
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
                  sgd, steps_validation, steps_checkpoint):
