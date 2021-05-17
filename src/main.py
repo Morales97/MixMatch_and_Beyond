@@ -47,6 +47,7 @@ if __name__ == '__main__':
                             saved_model['ema_model_state_dict'], 
                             saved_model['optimzer_state_dict'])
     '''
+    trainer.load_checkpoint('250_lbl_40k_steps_bias_trans.pt')
 
     trainer.train()
 

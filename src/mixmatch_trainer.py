@@ -15,6 +15,7 @@ class MixMatchTrainer:
                  sgd, steps_validation, steps_checkpoint, model_state_dict=None, ema_state_dict=None, optim_state_dict=None):
 
         self.n_steps = n_steps
+        self.start_step = 0
         self.K = K
         self.steps_validation = steps_validation
         self.steps_checkpoint = steps_checkpoint
@@ -51,22 +52,18 @@ class MixMatchTrainer:
 
         self.train_accuracies, self.train_losses, = [], []
         self.val_accuracies, self.val_losses, = [], []
+        self.best_acc = 0
 
         self.mixmatch = MixMatch(self.model, self.batch_size, self.device)
 
         self.writer = SummaryWriter()
-
-    def load_checkpoint(self, model_state_dict, ema_state_dict, optim_state_dict):
-        self.model.load_state_dict(model_state_dict)
-        self.ema_model.load_state_dict(ema_state_dict)
-        self.optimizer.load_state_dict(optim_state_dict)
 
     def train(self):
 
         iter_labeled_loader = iter(self.labeled_loader)
         iter_unlabeled_loader = iter(self.unlabeled_loader)
 
-        for step in range(self.n_steps):
+        for step in range(self.start_step, self.n_steps):
             # Get next batch of data
             self.model.train()
             try:
@@ -129,16 +126,15 @@ class MixMatchTrainer:
             # Evaluate model
             self.model.eval()
             if not step % self.steps_validation:
-                self.evaluate_loss_acc(step)
+                val_acc = self.evaluate_loss_acc(step)
+                if val_acc > self.best_acc:
+                    self.best_acc = val_acc
+                    self.save_model(step=step, path='../models/best_checkpoint.pt')
+
 
             # Save checkpoint
             if not step % self.steps_checkpoint:
-                torch.save({
-                    'step': step,
-                    'model_state_dict': self.model.state_dict(),
-                    'optimizer_state_dict': self.optimizer.state_dict(),
-                    'ema_state_dict': self.ema_model.state_dict(),
-                }, '../models/checkpoint.pt')
+                self.save_model(step=step, path='../models/checkpoint.pt')
 
         # --- Training finished ---
         test_val, test_acc = self.evaluate(self.test_loader)
@@ -162,6 +158,7 @@ class MixMatchTrainer:
         self.writer.add_scalar("Loss validation", val_loss, step)
         self.writer.add_scalar("Accuracy train_label", train_acc, step)
         self.writer.add_scalar("Accuracy validation", val_acc, step)
+        return val_acc
 
     def evaluate(self, dataloader):
         correct, total, loss = 0, 0, 0
@@ -183,10 +180,13 @@ class MixMatchTrainer:
     def get_losses(self):
         return self.loss_mixmatch.loss_list, self.loss_mixmatch.lx_list, self.loss_mixmatch.lu_list, self.loss_mixmatch.lu_weighted_list
 
-    def save_model(self):
+    def save_model(self, step=None, path='../models/model.pt'):
         loss_list, lx, lu, lu_weighted = self.get_losses()
+        if not step:
+            step = self.n_steps     # Training finished
 
         torch.save({
+            'step': step,
             'model_state_dict': self.model.state_dict(),
             'ema_state_dict': self.ema_model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
@@ -207,7 +207,18 @@ class MixMatchTrainer:
             'weight_decay': self.weight_decay,
             'momentum': self.momentum,
             'lr_decay': self.lr_decay,
-        }, '../models/model.pt')
+        }, path)
+
+    def load_checkpoint(self, model_name):
+        saved_model = torch.load(f'{model_name}')
+        self.model.load_state_dict(saved_model['model_state_dict'])
+        self.ema_model.load_state_dict(saved_model['ema_model_state_dict'])
+        self.optimizer.load_state_dict(saved_model['optim_state_dict'])
+        self.start_step = 40_000  # saved_model['step']
+        # self.train_losses = saved_model['loss_train']
+        # self.val_losses = saved_model['loss_val']
+        # self.train_accuracies = saved_model['acc_train']
+        # self.val_accuracies = saved_model['acc_val']
 
 
 class Loss(object):
