@@ -29,12 +29,15 @@ class MixMatchTrainer:
 
         depth, k, n_out = model_params
         self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
-        # self.model = WideResNetRepo(num_classes=n_out).to(self.device)
+        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
+        for param in self.ema_model.parameters():
+            param.detach_()
+
         if optimizer == 'adam':
             self.lr, self.weight_decay = adam
             self.momentum, self.lr_decay = None, None
-            self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-            self.ema = ExponentialMovingAverage(self.model.parameters(), decay=0.999)
+            self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
+            self.ema_optimizer = WeightEMA(self.model, self.ema_model, self.lr, alpha=0.999)
 
         else:
             lr, momentum, weight_decay, lr_decay = sgd
@@ -111,21 +114,24 @@ class MixMatchTrainer:
             # Step
             loss.backward()
             # !!! CLIP GRADIENTS TO 1 !!! Try to avoid exploiting gradients
-            nn.utils.clip_grad_norm(self.model.parameters(), 1)
+            # nn.utils.clip_grad_norm(self.model.parameters(), 1)
             self.optimizer.step()
-            if self.ema: self.ema.update(self.model.parameters())
+            self.ema_optimizer.step()
+            # if self.ema: self.ema.update(self.model.parameters())
 
+            '''
             # Decaying learning rate. Used in with SGD Nesterov optimizer
             if not self.ema and step in self.learning_steps:
                 for g in self.optimizer.param_groups:
                     g['lr'] *= 0.2
+            '''
 
             # Evaluate model
             if not step % self.steps_validation:
                 self.evaluate_no_ema(step)
 
             # Evaluate with EMA
-            if self.ema and not step % self.steps_validation:
+            if not step % self.steps_validation:
                 self.evaluate_ema(step)
 
             # Save checkpoint
@@ -141,6 +147,7 @@ class MixMatchTrainer:
         test_val, test_acc = self.evaluate(self.test_loader)
         print("Training done!!\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
 
+        '''
         # Evaluate with EMA
         if self.ema:
             self.ema.store(self.model.parameters())
@@ -148,6 +155,7 @@ class MixMatchTrainer:
             test_val, test_acc = self.evaluate(self.test_loader)
             print("With EMA\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
             self.ema.restore(self.model.parameters())
+        '''
 
         self.writer.flush()
 
@@ -170,18 +178,18 @@ class MixMatchTrainer:
 
     def evaluate_ema(self, step):
         # First save original parameters before replacing with EMA version
-        self.ema.store(self.model.parameters())
+        # self.ema.store(self.model.parameters())
         # Copy EMA parameters to model
-        self.ema.copy_to(self.model.parameters())
-        val_loss, val_acc = self.evaluate(self.val_loader)
+        # self.ema.copy_to(self.model.parameters())
+        val_loss, val_acc = self.evaluate_baisc_ema(self.val_loader)
         self.val_losses_ema.append(val_loss)
         self.val_accuracies_ema.append(val_acc)
-        train_loss, train_acc = self.evaluate(self.labeled_loader)
+        train_loss, train_acc = self.evaluate_baisc_ema(self.labeled_loader)
         self.train_losses_ema.append(train_loss)
         self.train_accuracies_ema.append(train_acc)
         print("With EMA.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
               (train_loss, val_loss, train_acc, val_acc))
-        self.ema.restore(self.model.parameters())
+        # self.ema.restore(self.model.parameters())
 
         self.writer.add_scalar("Loss train_label EMA", train_loss, step)
         self.writer.add_scalar("Loss validation EMA", val_loss, step)
@@ -205,16 +213,30 @@ class MixMatchTrainer:
         acc = correct / total * 100
         return loss, acc
 
+    def evaluate_baisc_ema(self, dataloader):
+        self.ema_model.eval()
+        correct, total, loss = 0, 0, 0
+        with torch.no_grad():
+            for i, data in enumerate(dataloader, 0):
+                inputs, labels = data[0].to(self.device), data[1].to(self.device)
+                outputs = self.model(inputs)
+                loss += self.criterion(outputs, labels).item()
+
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+            loss /= dataloader.__len__()
+
+        acc = correct / total * 100
+        return loss, acc
+
     def get_losses(self):
         return self.loss_mixmatch.loss_list, self.loss_mixmatch.lx_list, self.loss_mixmatch.lu_list, self.loss_mixmatch.lu_weighted_list
 
     def save_model(self):
         loss_list, lx, lu, lu_weighted = self.get_losses()
         model_state_dict = self.model.state_dict()
-        ema_state_dict = None
-        if self.ema:
-            self.ema.copy_to(self.model.parameters())
-            ema_state_dict = self.model.state_dict()
+        ema_state_dict = self.ema_model.state_dict()
 
         torch.save({
             'model_state_dict': model_state_dict,
@@ -275,3 +297,25 @@ class Loss(object):
             return self.lambda_u_max
         else:
             return self.lambda_u_max * step / self.step_top_up
+
+
+class WeightEMA(object):
+    def __init__(self, model, ema_model, lr, alpha=0.999):
+        self.model = model
+        self.ema_model = ema_model
+        self.alpha = alpha
+        self.params = list(model.state_dict().values())
+        self.ema_params = list(ema_model.state_dict().values())
+        self.wd = 0.02 * lr
+
+        for param, ema_param in zip(self.params, self.ema_params):
+            param.data.copy_(ema_param.data)
+
+    def step(self):
+        one_minus_alpha = 1.0 - self.alpha
+        for param, ema_param in zip(self.params, self.ema_params):
+            if ema_param.dtype == torch.float32:
+                ema_param.mul_(self.alpha)
+                ema_param.add_(param * one_minus_alpha)
+                # customized weight decay
+                param.mul_(1 - self.wd)
