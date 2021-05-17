@@ -20,6 +20,7 @@ class MixMatchTrainer:
         self.K = K
         self.steps_validation = steps_validation
         self.steps_checkpoint = steps_checkpoint
+        self.num_labeled = num_lbls
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = get_dataloaders_ssl\
             (path='../data', batch_size=batch_size, num_labeled=num_lbls)
         self.batch_size = self.labeled_loader.batch_size
@@ -30,8 +31,9 @@ class MixMatchTrainer:
         self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
         # self.model = WideResNetRepo(num_classes=n_out).to(self.device)
         if optimizer == 'adam':
-            lr, weight_decay = adam
-            self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
+            self.lr, self.weight_decay = adam
+            self.momentum, self.lr_decay = None, None
+            self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
             self.ema = ExponentialMovingAverage(self.model.parameters(), decay=0.999)
 
         else:
@@ -45,8 +47,8 @@ class MixMatchTrainer:
         self.loss_mixmatch = Loss(self.lambda_u_max, self.step_top_up)
         self.criterion = nn.CrossEntropyLoss()
 
-        self.train_accuracies, self.train_losses = [], []
-        self.val_accuracies, self.val_losses = [], []
+        self.train_accuracies, self.train_losses, self.train_accuracies_ema, self.train_losses_ema = [], [], [], []
+        self.val_accuracies, self.val_losses, self.val_accuracies_ema, self.val_losses_ema = [], [], [], []
 
         self.mixmatch = MixMatch(self.model, self.batch_size, self.device)
 
@@ -109,7 +111,7 @@ class MixMatchTrainer:
             # Step
             loss.backward()
             # !!! CLIP GRADIENTS TO 1 !!! Try to avoid exploiting gradients
-            # nn.utils.clip_grad_norm(self.model.parameters(), 1)
+            nn.utils.clip_grad_norm(self.model.parameters(), 1)
             self.optimizer.step()
             if self.ema: self.ema.update(self.model.parameters())
 
@@ -172,7 +174,11 @@ class MixMatchTrainer:
         # Copy EMA parameters to model
         self.ema.copy_to(self.model.parameters())
         val_loss, val_acc = self.evaluate(self.val_loader)
+        self.val_losses_ema.append(val_loss)
+        self.val_accuracies_ema.append(val_acc)
         train_loss, train_acc = self.evaluate(self.labeled_loader)
+        self.train_losses_ema.append(train_loss)
+        self.train_accuracies_ema.append(train_acc)
         print("With EMA.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
               (train_loss, val_loss, train_acc, val_acc))
         self.ema.restore(self.model.parameters())
@@ -218,10 +224,23 @@ class MixMatchTrainer:
             'loss_val': self.val_losses,
             'acc_train': self.train_accuracies,
             'acc_val': self.val_accuracies,
+            'loss_train_ema': self.train_losses_ema,
+            'loss_val_ema': self.val_losses_ema,
+            'acc_train_ema': self.train_accuracies_ema,
+            'acc_val_ema': self.val_accuracies_ema,
             'loss_batch': loss_list,
             'lx': lx,
             'lu': lu,
             'lu_weighted': lu_weighted,
+            'steps': self.n_steps,
+            'batch_size': self.batch_size,
+            'num_labels': self.num_labeled,
+            'lambda_u_max': self.lambda_u_max,
+            'step_top_up': self.step_top_up,
+            'lr': self.lr,
+            'weight_decay': self.weight_decay,
+            'momentum': self.momentum,
+            'lr_decay': self.lr_decay,
         }, '../models/model.pt')
 
 

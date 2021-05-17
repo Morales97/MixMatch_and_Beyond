@@ -1,10 +1,10 @@
 cifar_10:
   batch_size: 64
   num_outputs: 10
-  num_labeled: 4000
+  num_labeled: 250
 
 MixMatchTrainer:
-  n_steps: 10000
+  n_steps: 1
   K: 2
 
   lambda_u:
@@ -17,7 +17,7 @@ MixMatchTrainer:
   optimizer: 'adam'
   adam:
     lr: 0.002
-    weight_decay: 0.0004
+    weight_decay: 0 # 0.0004
   sgd:
     lr: 0.03
     momentum: 0.9
