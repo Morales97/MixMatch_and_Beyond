@@ -28,8 +28,8 @@ class MixMatchTrainerEMA:
         print(self.device)
 
         depth, k, n_out = model_params
-        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
-        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
+        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
+        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
         for param in self.ema_model.parameters():
             param.detach_()
 
@@ -127,12 +127,15 @@ class MixMatchTrainerEMA:
             '''
 
             # Evaluate model
+            self.model.eval()
             if not step % self.steps_validation:
-                self.evaluate_no_ema(step)
+                self.evaluate_loss_acc(step)
 
+            '''
             # Evaluate with EMA
             if not step % self.steps_validation:
                 self.evaluate_ema(step)
+            '''
 
             # Save checkpoint
             if not step % self.steps_checkpoint:
@@ -140,6 +143,7 @@ class MixMatchTrainerEMA:
                     'step': step,
                     'model_state_dict': self.model.state_dict(),
                     'optimizer_state_dict': self.optimizer.state_dict(),
+                    'ema_state_dict': self.ema_model.state_dict(),
                 }, '../models/checkpoint.pt')
 
         # --- Training finished ---
@@ -161,7 +165,7 @@ class MixMatchTrainerEMA:
 
     # --- support functions ---
 
-    def evaluate_no_ema(self, step):
+    def evaluate_loss_acc(self, step):
         val_loss, val_acc = self.evaluate(self.val_loader)
         self.val_losses.append(val_loss)
         self.val_accuracies.append(val_acc)
@@ -176,28 +180,7 @@ class MixMatchTrainerEMA:
         self.writer.add_scalar("Accuracy train_label", train_acc, step)
         self.writer.add_scalar("Accuracy validation", val_acc, step)
 
-    def evaluate_ema(self, step):
-        # First save original parameters before replacing with EMA version
-        # self.ema.store(self.model.parameters())
-        # Copy EMA parameters to model
-        # self.ema.copy_to(self.model.parameters())
-        val_loss, val_acc = self.evaluate_baisc_ema(self.val_loader)
-        self.val_losses_ema.append(val_loss)
-        self.val_accuracies_ema.append(val_acc)
-        train_loss, train_acc = self.evaluate_baisc_ema(self.labeled_loader)
-        self.train_losses_ema.append(train_loss)
-        self.train_accuracies_ema.append(train_acc)
-        print("With EMA.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f" %
-              (train_loss, val_loss, train_acc, val_acc))
-        # self.ema.restore(self.model.parameters())
-
-        self.writer.add_scalar("Loss train_label EMA", train_loss, step)
-        self.writer.add_scalar("Loss validation EMA", val_loss, step)
-        self.writer.add_scalar("Accuracy train_label EMA", train_acc, step)
-        self.writer.add_scalar("Accuracy validation EMA", val_acc, step)
-
     def evaluate(self, dataloader):
-        self.model.eval()
         correct, total, loss = 0, 0, 0
         with torch.no_grad():
             for i, data in enumerate(dataloader, 0):
@@ -213,22 +196,6 @@ class MixMatchTrainerEMA:
         acc = correct / total * 100
         return loss, acc
 
-    def evaluate_baisc_ema(self, dataloader):
-        self.ema_model.eval()
-        correct, total, loss = 0, 0, 0
-        with torch.no_grad():
-            for i, data in enumerate(dataloader, 0):
-                inputs, labels = data[0].to(self.device), data[1].to(self.device)
-                outputs = self.model(inputs)
-                loss += self.criterion(outputs, labels).item()
-
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-            loss /= dataloader.__len__()
-
-        acc = correct / total * 100
-        return loss, acc
 
     def get_losses(self):
         return self.loss_mixmatch.loss_list, self.loss_mixmatch.lx_list, self.loss_mixmatch.lu_list, self.loss_mixmatch.lu_weighted_list
