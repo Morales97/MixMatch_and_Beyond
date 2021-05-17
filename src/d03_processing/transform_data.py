@@ -39,6 +39,7 @@ class RandomCrop(torch.nn.Module):
     2- Crop the same number of pixels, in random side
     Returns an image of the same input size
     """
+
     def __init__(self, max_crop):
         super().__init__()
         self.max_crop = max_crop
@@ -47,12 +48,14 @@ class RandomCrop(torch.nn.Module):
         img = img.cpu().numpy()
         h, w = img.shape[2:]
         crop_size = np.random.randint(1, self.max_crop)
-        img = np.pad(img, [(0, 0), (0, 0), (crop_size, crop_size), (crop_size, crop_size)], mode='reflect')
+        imgaux = np.pad(img, [(0, 0), (0, 0), (crop_size, crop_size), (crop_size, crop_size)], mode='reflect')
 
-        top = np.random.randint(0, crop_size)
-        left = np.random.randint(0, crop_size)
+        for i in range(img.shape[0]):
+            top = np.random.randint(0, crop_size * 2)
+            print(top)
+            left = np.random.randint(0, crop_size * 2)
 
-        img = img[:,:, top: top + h, left: left + w]
+            img[i] = imgaux[i, :, top: top + h, left: left + w]
         return torch.from_numpy(img)
 
 
