@@ -43,7 +43,7 @@ def get_dataloaders_ssl(path="../../data", batch_size=64, num_labeled=250):
     val_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, sampler=val_sampler, num_workers=0)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
-    return train_labeled_loader, train_unlabeled_loader, val_loader, test_loader
+    return train_labeled_loader, train_unlabeled_loader, val_loader, test_loader, train_labeled_idxs, train_unlabeled_idxs, val_idxs
 
 
 def labeled_unlabeled_val_split(labels, n_labeled_per_class):

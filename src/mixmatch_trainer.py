@@ -20,8 +20,8 @@ class MixMatchTrainer:
         self.steps_validation = steps_validation
         self.steps_checkpoint = steps_checkpoint
         self.num_labeled = num_lbls
-        self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader = get_dataloaders_ssl\
-            (path='../data', batch_size=batch_size, num_labeled=num_lbls)
+        self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, self.lbl_idx, self.unlbl_idx, \
+            self.val_idx = get_dataloaders_ssl(path='../data', batch_size=batch_size, num_labeled=num_lbls)
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
@@ -207,18 +207,22 @@ class MixMatchTrainer:
             'weight_decay': self.weight_decay,
             'momentum': self.momentum,
             'lr_decay': self.lr_decay,
+            'lbl_idx': self.lbl_idx,
+            'unlbl_idx': self.unlbl_idx,
+            'val_idx': self.val_idx,
         }, path)
 
     def load_checkpoint(self, model_name):
         saved_model = torch.load(f'{model_name}')
         self.model.load_state_dict(saved_model['model_state_dict'])
-        self.ema_model.load_state_dict(saved_model['ema_model_state_dict'])
-        self.optimizer.load_state_dict(saved_model['optim_state_dict'])
+        self.ema_model.load_state_dict(saved_model['ema_state_dict'])
+        self.optimizer.load_state_dict(saved_model['optimizer_state_dict'])
         self.start_step = 40_000  # saved_model['step']
         # self.train_losses = saved_model['loss_train']
         # self.val_losses = saved_model['loss_val']
         # self.train_accuracies = saved_model['acc_train']
         # self.val_accuracies = saved_model['acc_val']
+        print('Model ' + model_name + ' loaded.')
 
 
 class Loss(object):
