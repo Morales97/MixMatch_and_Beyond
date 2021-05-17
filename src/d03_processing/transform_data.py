@@ -8,7 +8,7 @@ class Augment:
         self.K = K
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.transform = transforms.Compose([transforms.RandomHorizontalFlip().to(self.device),
-                                             RandomCrop(max_crop=4)])
+                                             RandomCrop(max_crop=4).to(self.device)])
                                             # transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)).to(self.device)])
                                             # AddGaussianNoise(mean=0, std=0.15).to(self.device)]
 
@@ -44,6 +44,7 @@ class RandomCrop(torch.nn.Module):
         self.max_crop = max_crop
 
     def forward(self, img):
+        img = img.cpu().numpy()
         h, w = img.shape[2:]
         crop_size = np.random.randint(1, self.max_crop)
         img = np.pad(img, [(0, 0), (0, 0), (crop_size, crop_size), (crop_size, crop_size)], mode='reflect')
