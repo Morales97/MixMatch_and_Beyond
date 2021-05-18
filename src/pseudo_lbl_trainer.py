@@ -30,8 +30,9 @@ class PseudoLabelTrainer:
 
         # Pseudo label
         self.steps_pseudo_lbl = 100
-        self.tau = 0.5  # confidence threshold
+        self.tau = 0.95  # confidence threshold
         self.unlabeled_loader_original = self.unlabeled_loader
+        self.min_unlbl_samples = 1000
 
         depth, k, n_out = model_params
         self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
@@ -205,6 +206,13 @@ class PseudoLabelTrainer:
 
         pseudo_labels = pseudo_labels_matrix[1]
         indices = pseudo_labels_matrix[2]
+
+        if new_unlbl_indxs.shape[0] < self.min_unlbl_samples:
+            diff = self.min_unlbl_samples - new_unlbl_indxs.shape[0]
+            new_unlbl_indxs.extend(indices[-diff:])
+            pseudo_labels = pseudo_labels[:-diff]
+            indices = indices[:-diff]
+            
         return pseudo_labels, indices, new_unlbl_indxs
 
     def evaluate_loss_acc(self, step):
