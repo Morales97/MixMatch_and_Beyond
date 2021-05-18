@@ -11,10 +11,10 @@ svhn:
 MixMatchTrainer:
   n_steps: 300000
   K: 2
-  dataset: 'cifar_10' #  'cifar_10' or 'svhn'
+  dataset: 'svhn' #  'cifar_10' or 'svhn'
 
   lambda_u:
-    lambda_u_max: 75
+    lambda_u_max: 250 # 75 for cifar, 250 for svhn
     step_top_up: 16000
 
   steps_validation: 1000 # steps to print validation losses and accuracy
