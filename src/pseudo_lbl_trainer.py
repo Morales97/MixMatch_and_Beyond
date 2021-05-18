@@ -190,7 +190,7 @@ class PseudoLabelTrainer:
                 p_pseudo_lbl, pseudo_lbl = torch.max(p_out, dim=1)
 
                 # Apply threshold and concat
-                pseudo_lbl_matrix = torch.vstack((p_pseudo_lbl, pseudo_lbl, idx))
+                pseudo_lbl_matrix = torch.vstack((p_pseudo_lbl, pseudo_lbl, idx.to(self.device)))
                 pseudo_lbl_matrix = pseudo_lbl_matrix[:, pseudo_lbl_matrix[0] >= self.tau]
                 unlbl_indxs = pseudo_lbl_matrix[2, pseudo_lbl_matrix[0] < self.tau]
 
