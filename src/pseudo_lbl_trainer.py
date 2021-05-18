@@ -7,8 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from d02_data.load_data_idxs import get_dataloaders_with_index
 from d04_mixmatch.wideresnet import WideResNet
 from mixmatch import MixMatch
-import pdb
-
+import numpy as np
 
 class PseudoLabelTrainer:
 
@@ -27,7 +26,7 @@ class PseudoLabelTrainer:
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
-        print(self.lbl_idx)
+
         # Pseudo label
         self.steps_pseudo_lbl = 100
         self.tau = 0.5  # confidence threshold
@@ -156,9 +155,8 @@ class PseudoLabelTrainer:
                           (pseudo_labels.shape[0], correct_pseudo_labels))
 
                 # Update loaders
-                new_lbl_idx = torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist()
-                print(new_lbl_idx)
-                new_unlbl_idx = unlbl_indices.tolist()
+                new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
+                new_unlbl_idx = np.int_(unlbl_indices.tolist())
                 self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, _ = \
                     get_dataloaders_with_index(path='../data',
                                                batch_size=self.batch_size,
