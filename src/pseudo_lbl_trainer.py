@@ -29,7 +29,7 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 1000
+        self.steps_pseudo_lbl = 100
         self.tau = 0.5  # confidence threshold
         self.unlabeled_loader_original = self.unlabeled_loader
 
@@ -132,17 +132,17 @@ class PseudoLabelTrainer:
 
             # Evaluate model
             self.model.eval()
-            if not step % self.steps_validation:
+            if step > 0 and not step % self.steps_validation:
                 val_acc, is_best = self.evaluate_loss_acc(step)
                 if is_best:
                     self.save_model(step=step, path='../models/best_checkpoint.pt')
 
             # Save checkpoint
-            if not step % self.steps_checkpoint:
+            if step > 0 and not step % self.steps_checkpoint:
                 self.save_model(step=step, path='../models/checkpoint.pt')
 
             # Generate Pseudo-labels
-            if not step % self.steps_pseudo_lbl:
+            if step > 0 and step % self.steps_pseudo_lbl:
                 pseudo_labels, indices, unlbl_indices = self.get_pseudo_labels()
 
                 # Check how many pseudo labels are correct
