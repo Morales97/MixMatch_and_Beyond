@@ -155,8 +155,8 @@ class PseudoLabelTrainer:
                           pseudo_labels.shape[0], correct_pseudo_labels)
 
                 # Update loaders
-                new_lbl_idx = torch.cat((self.lbl_idx, indices))
-                new_unlbl_idx = unlbl_indices
+                new_lbl_idx = torch.cat((torch.tensor(self.lbl_idx), indices)).tolist()
+                new_unlbl_idx = unlbl_indices.tolist()
                 self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, _ = \
                     get_dataloaders_with_index(path='../data',
                                                batch_size=self.batch_size,
