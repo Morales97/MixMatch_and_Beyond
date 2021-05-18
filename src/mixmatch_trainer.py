@@ -12,7 +12,8 @@ from mixmatch import MixMatch
 class MixMatchTrainer:
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
-                 sgd, steps_validation, steps_checkpoint, model_state_dict=None, ema_state_dict=None, optim_state_dict=None):
+                 sgd, steps_validation, steps_checkpoint, dataset, model_state_dict=None, ema_state_dict=None,
+                 optim_state_dict=None):
 
         self.n_steps = n_steps
         self.start_step = 0
@@ -21,7 +22,7 @@ class MixMatchTrainer:
         self.steps_checkpoint = steps_checkpoint
         self.num_labeled = num_lbls
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, self.lbl_idx, self.unlbl_idx, \
-            self.val_idx = get_dataloaders_ssl(path='../data', batch_size=batch_size, num_labeled=num_lbls)
+            self.val_idx = get_dataloaders_ssl(path='../data', batch_size=batch_size, num_labeled=num_lbls, which_dataset=dataset)
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)

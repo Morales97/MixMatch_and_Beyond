@@ -3,9 +3,15 @@ cifar_10:
   num_outputs: 10
   num_labeled: 250
 
+svhn:
+  batch_size: 64
+  num_outputs: 10
+  num_labeled: 250
+
 MixMatchTrainer:
   n_steps: 300000
   K: 2
+  dataset: 'svhn' #  'cifar_10' or 'svhn'
 
   lambda_u:
     lambda_u_max: 75
