@@ -130,6 +130,7 @@ class MixMatchTrainer:
                 if val_acc > self.best_acc:
                     self.best_acc = val_acc
                     self.save_model(step=step, path='../models/best_checkpoint.pt')
+                    print("*** New best accuracy! Model saved ***")
 
 
             # Save checkpoint
