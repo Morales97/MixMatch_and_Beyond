@@ -142,7 +142,7 @@ class PseudoLabelTrainer:
                 self.save_model(step=step, path='../models/checkpoint.pt')
 
             # Generate Pseudo-labels
-            if step > 0 and step % self.steps_pseudo_lbl:
+            if step > 0 and not step % self.steps_pseudo_lbl:
                 pseudo_labels, indices, unlbl_indices = self.get_pseudo_labels()
 
                 # Check how many pseudo labels are correct
