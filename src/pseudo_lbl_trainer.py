@@ -180,12 +180,12 @@ class PseudoLabelTrainer:
 
     def get_pseudo_labels(self):
 
-        pseudo_labels_matrix = torch.tensor([])
-        new_unlbl_indxs = torch.tensor([])
+        pseudo_labels_matrix = torch.tensor([]).to(self.device)
+        new_unlbl_indxs = torch.tensor([]).to(self.device)
         for batch_idx, (data, target, idx) in enumerate(self.unlabeled_loader_original):
             with torch.no_grad():
                 # Get predictions for unlabeled samples
-                out = self.model(data)
+                out = self.model(data.to(self.device))
                 p_out = torch.softmax(out, dim=1)   # turn into probability distribution
                 p_pseudo_lbl, pseudo_lbl = torch.max(p_out, dim=1)
 
