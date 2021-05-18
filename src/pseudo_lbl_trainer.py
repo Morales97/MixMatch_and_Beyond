@@ -8,6 +8,7 @@ from d02_data.load_data_idxs import get_dataloaders_with_index
 from d04_mixmatch.wideresnet import WideResNet
 from mixmatch import MixMatch
 import numpy as np
+import pdb
 
 class PseudoLabelTrainer:
 
@@ -198,11 +199,11 @@ class PseudoLabelTrainer:
                 pseudo_lbl_matrix = pseudo_lbl_matrix[:, pseudo_lbl_matrix[0] >= self.tau]
 
                 new_unlbl_indxs = torch.cat((new_unlbl_indxs, unlbl_indxs))
+                pdb.set_trace()
                 pseudo_labels_matrix = torch.cat((pseudo_labels_matrix, pseudo_lbl_matrix), dim=0)
 
         pseudo_labels = pseudo_labels_matrix[1]
         indices = pseudo_labels_matrix[2]
-        print(new_unlbl_indxs.shape)
         return pseudo_labels, indices, new_unlbl_indxs
 
     def evaluate_loss_acc(self, step):
