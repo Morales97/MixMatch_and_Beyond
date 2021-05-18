@@ -29,8 +29,8 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 5000
-        self.tau = 0.99  # confidence threshold
+        self.steps_pseudo_lbl = 100
+        self.tau = 0.8  # confidence threshold
         self.unlabeled_loader_original = self.unlabeled_loader
         self.min_unlbl_samples = 1000
 
@@ -146,18 +146,17 @@ class PseudoLabelTrainer:
             if step > 0 and not step % self.steps_pseudo_lbl:
                 pseudo_labels, indices, unlbl_indices = self.get_pseudo_labels()
 
-                '''
-                # Check how many pseudo labels are correct
+
+                # Check how many pseudo labels are correct. Needs debug
                 if True:
                     true_labels = self.unlabeled_loader.dataset.targets
                     correct_pseudo_labels = 0
-                    indices
                     for i, index in enumerate(indices):
-                        if pseudo_labels[i] == true_labels[index.item()]:
+                        if pseudo_labels[i] == true_labels[int(index.item())]:
                             correct_pseudo_labels += 1
                     print('*** %d pseudo labels generated, %d correspond to the ground truth' %
                           (pseudo_labels.shape[0], correct_pseudo_labels))
-                '''
+
                 # Update loaders
                 new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
                 new_unlbl_idx = np.int_(unlbl_indices.tolist())
