@@ -26,10 +26,10 @@ class PseudoLabelTrainer:
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
-
+        print(self.lbl_idx)
         # Pseudo label
         self.steps_pseudo_lbl = 100
-        self.tau = 0.95  # confidence threshold
+        self.tau = 0.5  # confidence threshold
         self.unlabeled_loader_original = self.unlabeled_loader
 
         depth, k, n_out = model_params
