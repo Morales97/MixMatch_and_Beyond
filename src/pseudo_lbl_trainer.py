@@ -29,8 +29,8 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 100
-        self.tau = 0.8  # confidence threshold
+        self.steps_pseudo_lbl = 5000
+        self.tau = 0.99  # confidence threshold
         self.unlabeled_loader_original = self.unlabeled_loader
         self.min_unlbl_samples = 1000
 
