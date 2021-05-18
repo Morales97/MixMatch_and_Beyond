@@ -126,9 +126,8 @@ class MixMatchTrainer:
             # Evaluate model
             self.model.eval()
             if not step % self.steps_validation:
-                val_acc = self.evaluate_loss_acc(step)
-                if val_acc > self.best_acc:
-                    self.best_acc = val_acc
+                val_acc, is_best = self.evaluate_loss_acc(step)
+                if is_best:
                     self.save_model(step=step, path='../models/best_checkpoint.pt')
                     print("*** New best accuracy! Model saved ***")
 
@@ -152,6 +151,12 @@ class MixMatchTrainer:
         train_loss, train_acc = self.evaluate(self.labeled_loader)
         self.train_losses.append(train_loss)
         self.train_accuracies.append(train_acc)
+
+        is_best = False
+        if val_acc > self.best_acc:
+            self.best_acc = val_acc
+            is_best = True
+
         print("Step %d.\tLoss train_lbl/valid  %.2f  %.2f\t Accuracy train_lbl/valid  %.2f  %.2f \tBest acc %.2f \t%s" %
               (step, train_loss, val_loss, train_acc, val_acc, self.best_acc, time.ctime()))
 
@@ -159,7 +164,7 @@ class MixMatchTrainer:
         self.writer.add_scalar("Loss validation", val_loss, step)
         self.writer.add_scalar("Accuracy train_label", train_acc, step)
         self.writer.add_scalar("Accuracy validation", val_acc, step)
-        return val_acc
+        return val_acc, is_best
 
     def evaluate(self, dataloader):
         correct, total, loss = 0, 0, 0
@@ -242,6 +247,7 @@ class Loss(object):
         u_output = torch.softmax(u_output, dim=1)
 
         lx = - torch.mean(torch.sum(x_target * torch.log_softmax(x_output, dim=1), dim=1))
+        # lx = torch.clamp(lx, min=0, max=2)  # Try clamping lx to
         lu = self.mse_loss(u_output, u_target)
         loss = lx + lu * lambda_u
 
