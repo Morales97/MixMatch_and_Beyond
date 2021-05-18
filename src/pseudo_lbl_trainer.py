@@ -191,15 +191,15 @@ class PseudoLabelTrainer:
                 out = self.model(data.to(self.device))
                 p_out = torch.softmax(out, dim=1)   # turn into probability distribution
                 p_pseudo_lbl, pseudo_lbl = torch.max(p_out, dim=1)
-
-                # Apply threshold and concat
                 pseudo_lbl_matrix = torch.vstack((p_pseudo_lbl, pseudo_lbl, idx.to(self.device)))
-                pseudo_lbl_matrix = pseudo_lbl_matrix[:, pseudo_lbl_matrix[0] >= self.tau]
+
+                # List indeces of unlabeled images below threshold
                 unlbl_indxs = pseudo_lbl_matrix[2, pseudo_lbl_matrix[0] < self.tau]
+                # Apply threshold
+                pseudo_lbl_matrix = pseudo_lbl_matrix[:, pseudo_lbl_matrix[0] >= self.tau]
 
                 new_unlbl_indxs = torch.cat((new_unlbl_indxs, unlbl_indxs))
                 pseudo_labels_matrix = torch.cat((pseudo_labels_matrix, pseudo_lbl_matrix))
-                pdb.set_trace()
 
         pseudo_labels = pseudo_labels_matrix[1]
         indices = pseudo_labels_matrix[2]
