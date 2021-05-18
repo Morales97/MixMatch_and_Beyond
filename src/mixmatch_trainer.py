@@ -151,8 +151,8 @@ class MixMatchTrainer:
         train_loss, train_acc = self.evaluate(self.labeled_loader)
         self.train_losses.append(train_loss)
         self.train_accuracies.append(train_acc)
-        print("Step %d.\t Loss train_lbl/valid  %.2f  %.2f \t Accuracy train_lbl/valid  %.2f  %.2f \t %s" %
-              (step, train_loss, val_loss, train_acc, val_acc, time.ctime()))
+        print("Step %d.\tLoss train_lbl/valid  %.2f  %.2f\t Accuracy train_lbl/valid  %.2f  %.2f \tBest acc %.2f \t%s" %
+              (step, train_loss, val_loss, train_acc, val_acc, self.best_acc, time.ctime()))
 
         self.writer.add_scalar("Loss train_label", train_loss, step)
         self.writer.add_scalar("Loss validation", val_loss, step)
