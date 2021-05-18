@@ -33,7 +33,14 @@ def get_dataloaders_ssl(path="../../data", batch_size=64, num_labeled=250, which
 
 
     # Split indexes between labeled, unlabeled and validation
-    train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(train_set.targets,
+    if which_dataset == 'cifar_10':
+        training_labels = train_set.targets
+    elif which_dataset == 'svhn':
+        training_labels = train_set.labels
+    else :
+        training_labels = train_set.targets
+
+    train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(training_labels,
                                                                                      int(num_labeled / 10))
 
     # Define samplers using indexes
