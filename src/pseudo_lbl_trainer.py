@@ -151,8 +151,8 @@ class PseudoLabelTrainer:
                     for i, index in enumerate(indices):
                         if pseudo_labels[i] == true_labels[index]:
                             correct_pseudo_labels += 1
-                    print('*** %d pseudo labels generated, %d correspond to the ground truth',
-                          pseudo_labels.shape[0], correct_pseudo_labels)
+                    print('*** %d pseudo labels generated, %d correspond to the ground truth' %
+                          (pseudo_labels.shape[0], correct_pseudo_labels))
 
                 # Update loaders
                 new_lbl_idx = torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist()
@@ -166,8 +166,8 @@ class PseudoLabelTrainer:
                                                unlbl_idxs=new_unlbl_idx,
                                                valid_idxs=self.val_idx)
 
-                print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d', new_lbl_idx.shape[0],
-                      new_unlbl_idx.shape[0], self.val_idx.shape[0])
+                print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
+                      len(new_unlbl_idx), len(self.val_idx)))
 
 
         # --- Training finished ---
