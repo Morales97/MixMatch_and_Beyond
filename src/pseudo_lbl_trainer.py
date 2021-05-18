@@ -4,12 +4,12 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
-from d02_data.load_data import get_dataloaders_ssl
+from d02_data.load_data_idxs import get_dataloaders_with_index
 from d04_mixmatch.wideresnet import WideResNet
 from mixmatch import MixMatch
 
 
-class MixMatchTrainer:
+class PseudoLabelTrainer:
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
                  sgd, steps_validation, steps_checkpoint, dataset, model_state_dict=None, ema_state_dict=None,
@@ -22,10 +22,15 @@ class MixMatchTrainer:
         self.steps_checkpoint = steps_checkpoint
         self.num_labeled = num_lbls
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, self.lbl_idx, self.unlbl_idx, \
-            self.val_idx = get_dataloaders_ssl(path='../data', batch_size=batch_size, num_labeled=num_lbls, which_dataset=dataset)
+            self.val_idx = get_dataloaders_with_index(path='../data', batch_size=batch_size, num_labeled=num_lbls, which_dataset=dataset)
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
+
+        # Pseudo label
+        self.steps_pseudo_lbl = 100
+        self.tau = 0.95  # confidence threshold
+        self.unlabeled_loader_original = self.unlabeled_loader
 
         depth, k, n_out = model_params
         self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
@@ -68,23 +73,23 @@ class MixMatchTrainer:
             # Get next batch of data
             self.model.train()
             try:
-                x_imgs, x_labels = iter_labeled_loader.next()
+                x_imgs, x_labels, _ = iter_labeled_loader.next()
                 # Check if batch size has been cropped for last batch
                 if x_imgs.shape[0] < self.batch_size:
                     iter_labeled_loader = iter(self.labeled_loader)
-                    x_imgs, x_labels = iter_labeled_loader.next()
+                    x_imgs, x_labels, _ = iter_labeled_loader.next()
             except:
                 iter_labeled_loader = iter(self.labeled_loader)
-                x_imgs, x_labels = iter_labeled_loader.next()
+                x_imgs, x_labels, _ = iter_labeled_loader.next()
 
             try:
-                u_imgs, _ = iter_unlabeled_loader.next()
+                u_imgs, _, _ = iter_unlabeled_loader.next()
                 if u_imgs.shape[0] < self.batch_size:
                     iter_unlabeled_loader = iter(self.unlabeled_loader)
-                    u_imgs, _ = iter_unlabeled_loader.next()
+                    u_imgs, _, _ = iter_unlabeled_loader.next()
             except:
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
-                u_imgs, _ = iter_unlabeled_loader.next()
+                u_imgs, _, _ = iter_unlabeled_loader.next()
 
             # Send to GPU
             x_imgs = x_imgs.to(self.device)
@@ -135,6 +140,36 @@ class MixMatchTrainer:
             if not step % self.steps_checkpoint:
                 self.save_model(step=step, path='../models/checkpoint.pt')
 
+            # Generate Pseudo-labels
+            if not step % self.steps_pseudo_lbl:
+                pseudo_labels, indices, unlbl_indices = self.get_pseudo_labels()
+
+                # Check how many pseudo labels are correct
+                if True:
+                    true_labels = self.unlabeled_loader.dataset.targets
+                    correct_pseudo_labels = 0
+                    for i, index in enumerate(indices):
+                        if pseudo_labels[i] == true_labels[index]:
+                            correct_pseudo_labels += 1
+                    print('*** %d pseudo labels generated, %d correspond to the ground truth',
+                          pseudo_labels.shape[0], correct_pseudo_labels)
+
+                # Update loaders
+                new_lbl_idx = torch.cat((self.lbl_idx, indices))
+                new_unlbl_idx = unlbl_indices
+                self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, _ = \
+                    get_dataloaders_with_index(path='../data',
+                                               batch_size=self.batch_size,
+                                               num_labeled=self.num_labeled,
+                                               which_dataset='cifar10',
+                                               lbl_idxs=new_lbl_idx,
+                                               unlbl_idxs=new_unlbl_idx,
+                                               valid_idxs=self.val_idx)
+
+                print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d', new_lbl_idx.shape[0],
+                      new_unlbl_idx.shape[0], self.val_idx.shape[0])
+
+
         # --- Training finished ---
         test_val, test_acc = self.evaluate(self.test_loader)
         print("Training done!!\t Test loss: %.3f \t Test accuracy: %.3f" % (test_val, test_acc))
@@ -142,6 +177,29 @@ class MixMatchTrainer:
         self.writer.flush()
 
     # --- support functions ---
+
+    def get_pseudo_labels(self):
+
+        pseudo_labels_matrix = torch.tensor([])
+        new_unlbl_indxs = torch.tensor([])
+        for batch_idx, (data, target, idx) in enumerate(self.unlabeled_loader_original):
+            with torch.no_grad():
+                # Get predictions for unlabeled samples
+                out = self.model(data)
+                p_out = torch.softmax(out, dim=1)   # turn into probability distribution
+                p_pseudo_lbl, pseudo_lbl = torch.max(p_out, dim=1)
+
+                # Apply threshold and concat
+                pseudo_lbl_matrix = torch.vstack((p_pseudo_lbl, pseudo_lbl, idx))
+                pseudo_lbl_matrix = pseudo_lbl_matrix[:, pseudo_lbl_matrix[0] >= self.tau]
+                unlbl_indxs = pseudo_lbl_matrix[2, pseudo_lbl_matrix[0] < self.tau]
+
+                new_unlbl_indxs = torch.cat((new_unlbl_indxs, unlbl_indxs))
+                pseudo_labels_matrix = torch.cat((pseudo_labels_matrix, pseudo_lbl_matrix))
+
+        pseudo_labels = pseudo_labels_matrix[1]
+        indices = pseudo_labels_matrix[2]
+        return pseudo_labels, indices, new_unlbl_indxs
 
     def evaluate_loss_acc(self, step):
         val_loss, val_acc = self.evaluate(self.val_loader)
