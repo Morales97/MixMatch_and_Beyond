@@ -18,8 +18,10 @@ if __name__ == '__main__':
     sgd = config['sgd']
     lambda_u = config['lambda_u']
 
-    batch_size = configuration['cifar_10']['batch_size']
-    num_labeled = configuration['cifar_10']['num_labeled']
+    dataset = config['dataset']
+
+    batch_size = configuration[dataset]['batch_size']
+    num_labeled = configuration[dataset]['num_labeled']
     n_steps = config['n_steps']
     K = config['K']
     lambda_u_params = lambda_u['lambda_u_max'], lambda_u['step_top_up']
@@ -32,8 +34,10 @@ if __name__ == '__main__':
     wideresnet_params = (params['depth'], params['k'], params['n_out'])
 
 
+
+
     trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
-                              optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint)
+                              optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset)
 
     # trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
     #                                 steps_validation, steps_checkpoint)

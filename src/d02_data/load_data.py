@@ -5,7 +5,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 import numpy as np
 
 
-def get_dataloaders_ssl(path="../../data", batch_size=64, num_labeled=250):
+def get_dataloaders_ssl(path="../../data", batch_size=64, num_labeled=250, which_dataset='cifar10'):
     """
     Returns data loaders for Semi-Supervised Learning
     Split between train_labeled, train_unlabeled, validation and test
@@ -21,13 +21,26 @@ def get_dataloaders_ssl(path="../../data", batch_size=64, num_labeled=250):
         normalize,
     ])
 
-    # Get train and test dataset
-    train_set = datasets.CIFAR10(root=path, train=True, download=True, transform=transform)
+    if which_dataset == 'cifar_10':
+        train_set = datasets.CIFAR10(root=path, train=True, download=True, transform=transform)
+        test_set = datasets.CIFAR10(root=path, train=False, download=True, transform=transform)
+    elif which_dataset == 'svhn':
+        train_set = datasets.SVHN(root=path, split='train', download=True, transform=transform)
+        test_set = datasets.SVHN(root=path, split='test', download=True, transform=transform)
+    else:
+        train_set = datasets.CIFAR10(root=path, train=True, download=True, transform=transform)
+        test_set = datasets.CIFAR10(root=path, train=False, download=True, transform=transform)
 
-    test_set = datasets.CIFAR10(root=path, train=False, download=True, transform=transform)
 
     # Split indexes between labeled, unlabeled and validation
-    train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(train_set.targets,
+    if which_dataset == 'cifar_10':
+        training_labels = train_set.targets
+    elif which_dataset == 'svhn':
+        training_labels = train_set.labels
+    else :
+        training_labels = train_set.targets
+
+    train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(training_labels,
                                                                                      int(num_labeled / 10))
 
     # Define samplers using indexes
