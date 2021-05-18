@@ -27,7 +27,7 @@ class AddGaussianNoise(torch.nn.Module):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
     def forward(self, tensor):
-        return tensor + torch.randn(tensor.size(), device=self.device) * self.std + self.mean
+        return tensor.to(self.device) + torch.randn(tensor.size(), device=self.device) * self.std + self.mean
     
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
@@ -55,7 +55,7 @@ class RandomCrop(torch.nn.Module):
             left = np.random.randint(0, crop_size * 2)
 
             img[i] = imgaux[i, :, top: top + h, left: left + w]
-        return torch.from_numpy(img).to(self.device)
+        return torch.from_numpy(img)
 
 
 
