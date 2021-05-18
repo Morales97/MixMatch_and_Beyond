@@ -209,7 +209,7 @@ class PseudoLabelTrainer:
 
         if new_unlbl_indxs.shape[0] < self.min_unlbl_samples:
             diff = self.min_unlbl_samples - new_unlbl_indxs.shape[0]
-            new_unlbl_indxs.extend(indices[-diff:])
+            new_unlbl_indxs = torch.cat((new_unlbl_indxs, indices[-diff:]))
             pseudo_labels = pseudo_labels[:-diff]
             indices = indices[:-diff]
 
