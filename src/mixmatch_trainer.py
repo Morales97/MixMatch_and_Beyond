@@ -213,7 +213,7 @@ class MixMatchTrainer:
         }, path)
 
     def load_checkpoint(self, model_name):
-        saved_model = torch.load(f'{model_name}')
+        saved_model = torch.load(f'../models/{model_name}')
         self.model.load_state_dict(saved_model['model_state_dict'])
         self.ema_model.load_state_dict(saved_model['ema_state_dict'])
         self.optimizer.load_state_dict(saved_model['optimizer_state_dict'])
