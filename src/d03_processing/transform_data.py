@@ -55,7 +55,7 @@ class RandomCrop(torch.nn.Module):
             left = np.random.randint(0, crop_size * 2)
 
             img[i] = imgaux[i, :, top: top + h, left: left + w]
-        return torch.from_numpy(img)
+        return torch.from_numpy(img).to(self.device)
 
 
 
