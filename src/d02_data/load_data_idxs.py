@@ -42,7 +42,7 @@ def get_dataloaders_with_index(path="../../data", batch_size=64, num_labeled=250
     train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(training_labels,
                                                                                      int(num_labeled / 10))
     # If indexes are provided, use them
-    if lbl_idxs:
+    if lbl_idxs is not None:
         train_labeled_idxs = lbl_idxs
         train_unlabeled_idxs = unlbl_idxs
         val_idxs = valid_idxs
