@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from d02_data.load_data_idxs import get_dataloaders_with_index
 from d04_mixmatch.wideresnet import WideResNet
 from mixmatch import MixMatch
+import pdb
 
 
 class PseudoLabelTrainer:
@@ -198,6 +199,7 @@ class PseudoLabelTrainer:
 
                 new_unlbl_indxs = torch.cat((new_unlbl_indxs, unlbl_indxs))
                 pseudo_labels_matrix = torch.cat((pseudo_labels_matrix, pseudo_lbl_matrix))
+                pdb.set_trace()
 
         pseudo_labels = pseudo_labels_matrix[1]
         indices = pseudo_labels_matrix[2]
