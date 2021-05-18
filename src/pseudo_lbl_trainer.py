@@ -149,8 +149,9 @@ class PseudoLabelTrainer:
                 if True:
                     true_labels = self.unlabeled_loader.dataset.targets
                     correct_pseudo_labels = 0
+                    print(indices.shape)
                     for i, index in enumerate(indices):
-                        if pseudo_labels[i] == true_labels[index]:
+                        if pseudo_labels[i] == true_labels[index.item()]:
                             correct_pseudo_labels += 1
                     print('*** %d pseudo labels generated, %d correspond to the ground truth' %
                           (pseudo_labels.shape[0], correct_pseudo_labels))
