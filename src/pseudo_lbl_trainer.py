@@ -165,6 +165,8 @@ class PseudoLabelTrainer:
                                                lbl_idxs=new_lbl_idx,
                                                unlbl_idxs=new_unlbl_idx,
                                                valid_idxs=self.val_idx)
+                iter_labeled_loader = iter(self.labeled_loader)
+                iter_unlabeled_loader = iter(self.unlabeled_loader)
 
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
@@ -199,6 +201,7 @@ class PseudoLabelTrainer:
 
         pseudo_labels = pseudo_labels_matrix[1]
         indices = pseudo_labels_matrix[2]
+        print(new_unlbl_indxs.shape)
         return pseudo_labels, indices, new_unlbl_indxs
 
     def evaluate_loss_acc(self, step):
