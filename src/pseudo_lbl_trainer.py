@@ -218,9 +218,9 @@ class PseudoLabelTrainer:
                 # Change real labels for pseudo labels
                 for i in range(matrix.shape[0]):
                     index = int(matrix[i, 0].item())
-                    if not torch.allclose(matrix[i, 3], self.labeled_loader.dataset.targets[index]):
+                    if not int(matrix[i, 3]) == self.labeled_loader.dataset.targets[index]:
                         pdb.set_trace()
-                    assert torch.allclose(matrix[i, 3], self.labeled_loader.dataset.targets[index])
+                    assert int(matrix[i, 3]) == self.labeled_loader.dataset.targets[index]
                     pseudo_labels = int(matrix[i, 2].item())
                     self.labeled_loader.dataset.targets[index] = pseudo_labels
 
