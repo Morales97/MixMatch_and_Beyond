@@ -149,7 +149,7 @@ class PseudoLabelTrainer:
                 self.save_model(step=step, path=f'../models/checkpoint_{step}.pt')
 
             # Generate Pseudo-labels
-
+            '''
             if step > 0 and not step % self.steps_pseudo_lbl:
                 pseudo_labels, indices, unlbl_indices = self.get_pseudo_labels()
 
@@ -181,7 +181,7 @@ class PseudoLabelTrainer:
 
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
-
+            '''
             # Record unlabeled guesses and confidence
             if step > 0 and not step % self.steps_pseudo_lbl:
                 matrix = self.get_all_pseudo_labels()
