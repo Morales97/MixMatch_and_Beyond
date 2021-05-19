@@ -183,7 +183,7 @@ class PseudoLabelTrainer:
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
             '''
-
+            '''
             # Record unlabeled guesses and confidence
             if step > 0 and not step % self.steps_pseudo_lbl:
             #if True:
@@ -232,7 +232,7 @@ class PseudoLabelTrainer:
 
                 # Save
                 # torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
-
+            '''
 
         # --- Training finished ---
         test_val, test_acc = self.evaluate(self.test_loader)
