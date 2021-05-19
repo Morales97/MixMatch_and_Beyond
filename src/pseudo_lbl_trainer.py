@@ -10,6 +10,7 @@ from mixmatch import MixMatch
 import numpy as np
 import pdb
 
+
 class PseudoLabelTrainer:
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
@@ -139,7 +140,7 @@ class PseudoLabelTrainer:
                     self.save_model(step=step, path='../models/best_checkpoint.pt')
 
             # Save checkpoint
-            if step > 0 and not step % self.steps_checkpoint:
+            if step > 10000 and not step % self.steps_checkpoint:
                 self.save_model(step=step, path='../models/checkpoint.pt')
 
             # Generate Pseudo-labels
@@ -293,11 +294,19 @@ class PseudoLabelTrainer:
         self.model.load_state_dict(saved_model['model_state_dict'])
         self.ema_model.load_state_dict(saved_model['ema_state_dict'])
         self.optimizer.load_state_dict(saved_model['optimizer_state_dict'])
-        self.start_step = 40_000  # saved_model['step']
+        self.start_step = saved_model['step']
         # self.train_losses = saved_model['loss_train']
         # self.val_losses = saved_model['loss_val']
         # self.train_accuracies = saved_model['acc_train']
         # self.val_accuracies = saved_model['acc_val']
+        self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, self.lbl_idx, self.unlbl_idx, self.val_idx = \
+            get_dataloaders_with_index(path='../data',
+                                       batch_size=self.batch_size,
+                                       num_labeled=self.num_labeled,
+                                       which_dataset='cifar10',
+                                       lbl_idxs=saved_model['lbl_idx'],
+                                       unlbl_idxs=saved_model['unlbl_idx'],
+                                       valid_idxs=saved_model['val_idx'])
         print('Model ' + model_name + ' loaded.')
 
 

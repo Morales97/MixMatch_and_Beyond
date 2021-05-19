@@ -132,7 +132,7 @@ class MixMatchTrainer:
                     self.save_model(step=step, path='../models/best_checkpoint.pt')
 
             # Save checkpoint
-            if not step % self.steps_checkpoint:
+            if step > 10000 and not step % self.steps_checkpoint:
                 self.save_model(step=step, path='../models/checkpoint.pt')
 
         # --- Training finished ---
@@ -222,7 +222,7 @@ class MixMatchTrainer:
         self.model.load_state_dict(saved_model['model_state_dict'])
         self.ema_model.load_state_dict(saved_model['ema_state_dict'])
         self.optimizer.load_state_dict(saved_model['optimizer_state_dict'])
-        self.start_step = 40_000  # saved_model['step']
+        self.start_step = saved_model['step']
         # self.train_losses = saved_model['loss_train']
         # self.val_losses = saved_model['loss_val']
         # self.train_accuracies = saved_model['acc_train']

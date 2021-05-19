@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     start_time = time.time()
 
-    # trainer.load_checkpoint('best_checkpoint.pt')
+    trainer.load_checkpoint('250_lbl_180k_steps.pt')
 
     trainer.train()
 
