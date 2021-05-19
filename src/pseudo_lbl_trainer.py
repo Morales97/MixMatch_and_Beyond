@@ -36,7 +36,7 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 1
+        self.steps_pseudo_lbl = 100
         self.tau = 0.99  # confidence threshold
         self.min_unlbl_samples = 1000
 
@@ -185,8 +185,8 @@ class PseudoLabelTrainer:
             '''
 
             # Record unlabeled guesses and confidence
-            #if step > 0 and not step % self.steps_pseudo_lbl:
-            if True:
+            if step > 0 and not step % self.steps_pseudo_lbl:
+            #if True:
                 # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
                 matrix = self.get_all_pseudo_labels()
 
