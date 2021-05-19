@@ -36,7 +36,7 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 5000
+        self.steps_pseudo_lbl = 1
         self.tau = 0.99  # confidence threshold
         self.min_unlbl_samples = 1000
 
@@ -77,13 +77,6 @@ class PseudoLabelTrainer:
         iter_unlabeled_loader = iter(self.unlabeled_loader)
 
         for step in range(self.start_step, self.n_steps):
-
-            # Evaluate model. Should do it at the start for checkpoint sanity check
-            self.model.eval()
-            if step > 0 and not step % self.steps_validation:
-                val_acc, is_best = self.evaluate_loss_acc(step)
-                if is_best and step > 10000:
-                    self.save_model(step=step, path=f'../models/best_checkpoint.pt')
 
             # Get next batch of data
             self.model.train()
@@ -144,6 +137,13 @@ class PseudoLabelTrainer:
                     g['lr'] *= 0.2
             '''
 
+            # Evaluate model. Should do it at the start for checkpoint sanity check
+            self.model.eval()
+            if step > 0 and not step % self.steps_validation:
+                val_acc, is_best = self.evaluate_loss_acc(step)
+                if is_best and step > 10000:
+                    self.save_model(step=step, path=f'../models/best_checkpoint.pt')
+
             # Save checkpoint
             if step > 10000 and not step % self.steps_checkpoint:
                 self.save_model(step=step, path=f'../models/checkpoint_{step}.pt')
@@ -176,14 +176,17 @@ class PseudoLabelTrainer:
                                                unlbl_idxs=new_unlbl_idx,
                                                valid_idxs=self.val_idx)
                 assert np.allclose(self.val_idx, new_val_idx)
+                
                 iter_labeled_loader = iter(self.labeled_loader)
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
 
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
             '''
+
             # Record unlabeled guesses and confidence
             if step > 0 and not step % self.steps_pseudo_lbl:
+                # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
                 matrix = self.get_all_pseudo_labels()
 
                 for i, tau in enumerate([0.9, 0.95, 0.97, 0.99, 0.999]):
@@ -193,8 +196,39 @@ class PseudoLabelTrainer:
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d  %d  %.2f '
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
+                unlbl_indices = matrix[matrix[:, 1] < self.tau, 0]
+                matrix = matrix[matrix[:, 1] >= self.tau, :]
+                indices = matrix[:, 0]
+
+                new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
+                new_unlbl_idx = np.int_(unlbl_indices.tolist())
+                self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, new_val_idx = \
+                    get_dataloaders_with_index(path='../data',
+                                               batch_size=self.batch_size,
+                                               num_labeled=self.num_labeled,
+                                               which_dataset='cifar10',
+                                               lbl_idxs=new_lbl_idx,
+                                               unlbl_idxs=new_unlbl_idx,
+                                               valid_idxs=self.val_idx)
+
+                assert np.allclose(self.val_idx, new_val_idx), 'error'
+                assert (len(self.labeled_loader.sampler) + len(self.unlabeled_loader.sampler) + len(self.val_loader.sampler) == 50000), 'error'
+
+                # Change real labels for pseudo labels
+                for i in range(matrix.shape[0]):
+                    index = matrix[i, 0]
+                    assert matrix[i, 3] == self.labeled_loader.dataset.targets[index]
+                    pseudo_labels = matrix[i, 2]
+                    self.labeled_loader.dataset.targets[index] = pseudo_labels
+
+                iter_labeled_loader = iter(self.labeled_loader)
+                iter_unlabeled_loader = iter(self.unlabeled_loader)
+
+                print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
+                      len(new_unlbl_idx), len(self.val_idx)))
+
                 # Save
-                torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
+                # torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
 
 
         # --- Training finished ---
@@ -365,6 +399,8 @@ class PseudoLabelTrainer:
                                        valid_idxs=saved_model['val_idx'])
         self.unlabeled_loader_original = self.unlabeled_loader
         print('Model ' + model_name + ' loaded.')
+        self.evaluate_loss_acc(self.start_step)
+
 
 
 class Loss(object):
