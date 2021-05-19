@@ -30,7 +30,7 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 5000
+        self.steps_pseudo_lbl = 100
         self.tau = 0.99  # confidence threshold
         self.unlabeled_loader_original = self.unlabeled_loader
         self.min_unlbl_samples = 1000
@@ -180,7 +180,7 @@ class PseudoLabelTrainer:
             if step > 0 and not step % self.steps_pseudo_lbl:
                 matrix = self.get_all_pseudo_labels()
 
-                for tau in [0.9, 0.95, 0.97, 0.99, 0.999]:
+                for i, tau in enumerate([0.9, 0.95, 0.97, 0.99, 0.999]):
                     pseudo_labels = matrix[matrix[:, 1] >= tau]
                     total = pseudo_labels.shape[0]
                     correct = torch.sum(pseudo_labels[:, 4]).item()
@@ -247,7 +247,7 @@ class PseudoLabelTrainer:
 
         n_unlabeled = matrix.shape[0]
         true_labels = self.unlabeled_loader.dataset.targets
-        matrix = torch.vstack((matrix.T, true_labels)).T                # (n_unlabeled, 4)
+        matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled))).T   # (n_unlabeled, 4)
         matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled))).T   # (n_unlabeled, 5)
 
         # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
@@ -256,7 +256,9 @@ class PseudoLabelTrainer:
         for i in range(n_unlabeled):
             index = matrix[i, 0].item()
             pseudo_label = matrix[i, 2]
-            if pseudo_label == true_labels[index]:
+            ground_truth = true_labels[index]
+            matrix[i, 3] = ground_truth
+            if pseudo_label == ground_truth:
                 matrix[i, 4] = 1
 
         return matrix
