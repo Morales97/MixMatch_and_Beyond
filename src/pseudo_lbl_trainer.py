@@ -25,14 +25,19 @@ class PseudoLabelTrainer:
         self.num_labeled = num_lbls
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, self.lbl_idx, self.unlbl_idx, \
             self.val_idx = get_dataloaders_with_index(path='../data', batch_size=batch_size, num_labeled=num_lbls, which_dataset=dataset)
+
+        # Make a deep copy of original unlabeled loader
+        _, self.unlabeled_loader_original, _, _, _, _, _ \
+            = get_dataloaders_with_index(path='../data', batch_size=batch_size, num_labeled=num_lbls, which_dataset=dataset,
+                                         lbl_idxs=self.lbl_idx, unlbl_idxs=self.unlbl_idx, valid_idxs=self.val_idx)
+
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 100
+        self.steps_pseudo_lbl = 5000
         self.tau = 0.99  # confidence threshold
-        self.unlabeled_loader_original = self.unlabeled_loader
         self.min_unlbl_samples = 1000
 
         depth, k, n_out = model_params
@@ -40,7 +45,6 @@ class PseudoLabelTrainer:
         self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
         for param in self.ema_model.parameters():
             param.detach_()
-
 
         if optimizer == 'adam':
             self.lr, self.weight_decay = adam
@@ -144,7 +148,7 @@ class PseudoLabelTrainer:
                 self.save_model(step=step, path=f'../models/checkpoint_{step}.pt')
 
             # Generate Pseudo-labels
-            '''
+
             if step > 0 and not step % self.steps_pseudo_lbl:
                 pseudo_labels, indices, unlbl_indices = self.get_pseudo_labels()
 
@@ -162,7 +166,7 @@ class PseudoLabelTrainer:
                 # Update loaders
                 new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
                 new_unlbl_idx = np.int_(unlbl_indices.tolist())
-                self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, _ = \
+                self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, new_val_idx = \
                     get_dataloaders_with_index(path='../data',
                                                batch_size=self.batch_size,
                                                num_labeled=self.num_labeled,
@@ -170,12 +174,13 @@ class PseudoLabelTrainer:
                                                lbl_idxs=new_lbl_idx,
                                                unlbl_idxs=new_unlbl_idx,
                                                valid_idxs=self.val_idx)
+                assert np.allclose(self.val_idx, new_val_idx)
                 iter_labeled_loader = iter(self.labeled_loader)
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
 
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
-            '''
+
             # Record unlabeled guesses and confidence
             if step > 0 and not step % self.steps_pseudo_lbl:
                 matrix = self.get_all_pseudo_labels()
@@ -185,7 +190,7 @@ class PseudoLabelTrainer:
                     total = pseudo_labels.shape[0]
                     correct = torch.sum(pseudo_labels[:, 4]).item()
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d  %d  %.2f '
-                          % (tau, total, correct, correct / total * 100))
+                          % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
                 # Save
                 torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
@@ -357,6 +362,7 @@ class PseudoLabelTrainer:
                                        lbl_idxs=saved_model['lbl_idx'],
                                        unlbl_idxs=saved_model['unlbl_idx'],
                                        valid_idxs=saved_model['val_idx'])
+        self.unlabeled_loader_original = self.unlabeled_loader
         print('Model ' + model_name + ' loaded.')
 
 
