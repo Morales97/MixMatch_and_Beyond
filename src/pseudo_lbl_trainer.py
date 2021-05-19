@@ -42,8 +42,8 @@ class PseudoLabelTrainer:
         self.min_unlbl_samples = 1000
 
         depth, k, n_out = model_params
-        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
-        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
+        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
+        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
         for param in self.ema_model.parameters():
             param.detach_()
 
