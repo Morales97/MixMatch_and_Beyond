@@ -36,8 +36,8 @@ class PseudoLabelTrainer:
         self.min_unlbl_samples = 1000
 
         depth, k, n_out = model_params
-        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
-        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=False).to(self.device)
+        self.model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
+        self.ema_model = WideResNet(depth=depth, k=k, n_out=n_out, bias=True).to(self.device)
         for param in self.ema_model.parameters():
             param.detach_()
 
@@ -136,8 +136,8 @@ class PseudoLabelTrainer:
             self.model.eval()
             if step > 0 and not step % self.steps_validation:
                 val_acc, is_best = self.evaluate_loss_acc(step)
-                if is_best:
-                    self.save_model(step=step, path=f'../models/best_checkpoint_{step}.pt')
+                if is_best and step > 10000:
+                    self.save_model(step=step, path=f'../models/best_checkpoint.pt')
 
             # Save checkpoint
             if step > 10000 and not step % self.steps_checkpoint:
@@ -184,11 +184,11 @@ class PseudoLabelTrainer:
                     pseudo_labels = matrix[matrix[:, 1] >= tau]
                     total = pseudo_labels.shape[0]
                     correct = torch.sum(pseudo_labels[:, 4]).item()
-                    print('Confidence threshold %f\t Generated / Correct / Precision\t %d  %d  %.2f '
+                    print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d  %d  %.2f '
                           % (tau, total, correct, correct / total * 100))
 
                 # Save
-                torch.save(matrix, f'/models/pseudo_matrix_{step}.pt')
+                torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
 
 
         # --- Training finished ---
@@ -254,7 +254,7 @@ class PseudoLabelTrainer:
 
         # Check if pseudo label is ground truth
         for i in range(n_unlabeled):
-            index = matrix[i, 0].item()
+            index = int(matrix[i, 0].item())
             pseudo_label = matrix[i, 2]
             ground_truth = true_labels[index]
             matrix[i, 3] = ground_truth
