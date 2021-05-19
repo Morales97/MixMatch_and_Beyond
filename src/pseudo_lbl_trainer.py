@@ -25,6 +25,7 @@ class PseudoLabelTrainer:
         self.num_labeled = num_lbls
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, self.lbl_idx, self.unlbl_idx, \
             self.val_idx = get_dataloaders_with_index(path='../data', batch_size=batch_size, num_labeled=num_lbls, which_dataset=dataset)
+        self.targets_list = np.array(self.labeled_loader.dataset.targets)
 
         # Make a deep copy of original unlabeled loader
         _, self.unlabeled_loader_original, _, _, _, _, _ \
@@ -183,15 +184,16 @@ class PseudoLabelTrainer:
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
             '''
-            '''
+
             # Record unlabeled guesses and confidence
             if step > 0 and not step % self.steps_pseudo_lbl:
             #if True:
                 # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
                 matrix = self.get_all_pseudo_labels()
+                pdb.set_trace()
 
                 for i, tau in enumerate([0.9, 0.95, 0.97, 0.99, 0.999]):
-                    pseudo_labels = matrix[matrix[:, 1] >= tau]
+                    pseudo_labels = matrix[matrix[:, 1] >= tau, :]
                     total = pseudo_labels.shape[0]
                     correct = torch.sum(pseudo_labels[:, 4]).item()
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d  %d  %.2f '
@@ -231,8 +233,8 @@ class PseudoLabelTrainer:
                       len(new_unlbl_idx), len(self.val_idx)))
 
                 # Save
-                # torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
-            '''
+                torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
+
 
         # --- Training finished ---
         test_val, test_acc = self.evaluate(self.test_loader)
@@ -289,19 +291,16 @@ class PseudoLabelTrainer:
                 matrix = torch.cat((matrix, pseudo_lbl_batch), dim=0)  # (n_unlabeled, 3)
 
         n_unlabeled = matrix.shape[0]
-        true_labels = self.unlabeled_loader.dataset.targets
-        matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled, device=self.device))).T   # (n_unlabeled, 4)
+        indices = matrix[:, 0].cpu().numpy()
+        ground_truth = self.targets_list[indices]
+        matrix = torch.vstack((matrix.T, torch.tensor(ground_truth, device=self.device))).T   # (n_unlabeled, 4)
         matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled, device=self.device))).T   # (n_unlabeled, 5)
 
         # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
 
         # Check if pseudo label is ground truth
         for i in range(n_unlabeled):
-            index = int(matrix[i, 0].item())
-            pseudo_label = matrix[i, 2]
-            ground_truth = true_labels[index]
-            matrix[i, 3] = ground_truth
-            if pseudo_label == ground_truth:
+            if matrix[i, 2] == matrix[i, 3]:
                 matrix[i, 4] = 1
         return matrix
 
