@@ -163,7 +163,9 @@ class PseudoLabelTrainer:
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
 
-                unlbl_indices = matrix[matrix[:, 1] < self.tau or matrix[:, 1] >= 0.99, 0]
+                unlbl_indices = matrix[matrix[:, 1] < self.tau, 0]
+                unlbl_indices2 = matrix[matrix[:, 1] >= 0.99, 0]
+                unlbl_indices = torch.cat((unlbl_indices, unlbl_indices2))
                 matrix = matrix[self.tau <= matrix[:, 1] < 0.99, :]
                 indices = matrix[:, 0]
 
