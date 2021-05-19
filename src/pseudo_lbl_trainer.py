@@ -162,13 +162,11 @@ class PseudoLabelTrainer:
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d\t%d\t%.2f '
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
+                unlbl_mask = (matrix[:, 1] < self.tau) & (matrix[:, 1] >= 0.99)
+                pseudo_mask = (matrix[:, 1] >= self.tau) & (matrix[:, 1] < 0.99)
 
-                unlbl_indices = matrix[matrix[:, 1] < self.tau, 0]
-                unlbl_indices2 = matrix[matrix[:, 1] >= 0.99, 0]
-                unlbl_indices = torch.cat((unlbl_indices, unlbl_indices2))
-                matrix2 = matrix[self.tau <= matrix[:, 1], :]
-                matrix3 = matrix[matrix[:, 1] < 0.99, :]
-                matrix = torch.cat((matrix2, matrix3))
+                unlbl_indices = matrix[unlbl_mask, 0]
+                matrix = matrix[pseudo_mask, :]
                 indices = matrix[:, 0]
 
                 new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
