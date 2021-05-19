@@ -185,7 +185,8 @@ class PseudoLabelTrainer:
             '''
 
             # Record unlabeled guesses and confidence
-            if step > 0 and not step % self.steps_pseudo_lbl:
+            #if step > 0 and not step % self.steps_pseudo_lbl:
+            if True:
                 # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
                 matrix = self.get_all_pseudo_labels()
 
@@ -217,7 +218,7 @@ class PseudoLabelTrainer:
                 # Change real labels for pseudo labels
                 for i in range(matrix.shape[0]):
                     index = int(matrix[i, 0].item())
-                    assert np.allclose(matrix[i, 3], self.labeled_loader.dataset.targets[index])
+                    assert torch.allclose(matrix[i, 3], self.labeled_loader.dataset.targets[index])
                     pseudo_labels = int(matrix[i, 2].item())
                     self.labeled_loader.dataset.targets[index] = pseudo_labels
 
@@ -295,12 +296,12 @@ class PseudoLabelTrainer:
         # Check if pseudo label is ground truth
         for i in range(n_unlabeled):
             index = int(matrix[i, 0].item())
-            pseudo_label = matrix[index, 2]
+            pseudo_label = matrix[i, 2]
             ground_truth = true_labels[index]
-            matrix[index, 3] = ground_truth
+            matrix[i, 3] = ground_truth
             if pseudo_label == ground_truth:
-                matrix[index, 4] = 1
-
+                matrix[i, 4] = 1
+            pdb.set_trace()
         return matrix
 
     def evaluate_loss_acc(self, step):
