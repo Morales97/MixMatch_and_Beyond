@@ -162,7 +162,7 @@ class PseudoLabelTrainer:
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d\t%d\t%.2f '
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
-                unlbl_mask = (matrix[:, 1] < self.tau) & (matrix[:, 1] >= 0.99)
+                unlbl_mask = (matrix[:, 1] < self.tau) or (matrix[:, 1] >= 0.99)
                 pseudo_mask = (matrix[:, 1] >= self.tau) & (matrix[:, 1] < 0.99)
 
                 unlbl_indices = matrix[unlbl_mask, 0]
