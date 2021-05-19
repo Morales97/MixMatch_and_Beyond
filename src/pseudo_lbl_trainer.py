@@ -77,6 +77,14 @@ class PseudoLabelTrainer:
         iter_unlabeled_loader = iter(self.unlabeled_loader)
 
         for step in range(self.start_step, self.n_steps):
+
+            # Evaluate model. Should do it at the start for checkpoint sanity check
+            self.model.eval()
+            if step > 0 and not step % self.steps_validation:
+                val_acc, is_best = self.evaluate_loss_acc(step)
+                if is_best and step > 10000:
+                    self.save_model(step=step, path=f'../models/best_checkpoint.pt')
+
             # Get next batch of data
             self.model.train()
             try:
@@ -135,13 +143,6 @@ class PseudoLabelTrainer:
                 for g in self.optimizer.param_groups:
                     g['lr'] *= 0.2
             '''
-
-            # Evaluate model
-            self.model.eval()
-            if step > 0 and not step % self.steps_validation:
-                val_acc, is_best = self.evaluate_loss_acc(step)
-                if is_best and step > 10000:
-                    self.save_model(step=step, path=f'../models/best_checkpoint.pt')
 
             # Save checkpoint
             if step > 10000 and not step % self.steps_checkpoint:
