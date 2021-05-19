@@ -38,7 +38,7 @@ class PseudoLabelTrainer:
 
         # Pseudo label
         self.steps_pseudo_lbl = 5000
-        self.tau = 0.99  # confidence threshold
+        self.tau = 0.95  # confidence threshold
         self.min_unlbl_samples = 1000
 
         depth, k, n_out = model_params
@@ -154,14 +154,15 @@ class PseudoLabelTrainer:
                 # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
                 matrix = self.get_pseudo_labels()
 
+                m2 = matrix[matrix[:, 1] >= 0.9, :]
                 for i, tau in enumerate([0.9, 0.95, 0.97, 0.99, 0.999]):
-                    pseudo_labels = matrix[matrix[:, 1] >= tau, :]
+                    pseudo_labels = m2[m2[:, 1] >= tau, :]
                     total = pseudo_labels.shape[0]
                     correct = torch.sum(pseudo_labels[:, 4]).item()
-                    print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d  %d  %.2f '
+                    print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d\t%d\t%.2f '
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
-                '''
+
                 unlbl_indices = matrix[matrix[:, 1] < self.tau, 0]
                 matrix = matrix[matrix[:, 1] >= self.tau, :]
                 indices = matrix[:, 0]
@@ -188,9 +189,9 @@ class PseudoLabelTrainer:
                 
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
-                '''
+
                 # Save
-                torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
+                # torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
 
 
         # --- Training finished ---
@@ -324,7 +325,6 @@ class PseudoLabelTrainer:
                                        valid_idxs=saved_model['val_idx'])
         self.unlabeled_loader_original = self.unlabeled_loader
         print('Model ' + model_name + ' loaded.')
-        self.evaluate_loss_acc(self.start_step)
 
 
 
