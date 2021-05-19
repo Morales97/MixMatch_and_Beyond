@@ -163,8 +163,8 @@ class PseudoLabelTrainer:
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
 
-                unlbl_indices = matrix[matrix[:, 1] < self.tau, 0]
-                matrix = matrix[matrix[:, 1] >= self.tau, :]
+                unlbl_indices = matrix[matrix[:, 1] < self.tau or matrix[:, 1] >= 0.99, 0]
+                matrix = matrix[self.tau <= matrix[:, 1] < 0.99, :]
                 indices = matrix[:, 0]
 
                 new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
@@ -186,7 +186,10 @@ class PseudoLabelTrainer:
 
                 iter_labeled_loader = iter(self.labeled_loader)
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
-                
+
+                correct = torch.sum(matrix[:, 4]).item()
+                pseudo_acc = correct / matrix.shape[0] * 100 if matrix.shape[0] > 0 else 0
+                print('Generated labels: %d\t Correct: %d\t Accuracy: %.2f' % (matrix.shape[0], correct, pseudo_acc))
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
 
