@@ -198,7 +198,7 @@ class PseudoLabelTrainer:
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
                 unlbl_indices = matrix[matrix[:, 1] < self.tau, 0]
-                matrix = matrix[matrix[:, 1] >= self.tau, :]
+                # matrix = matrix[matrix[:, 1] >= self.tau, :]
                 indices = matrix[:, 0]
 
                 new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
@@ -218,6 +218,7 @@ class PseudoLabelTrainer:
                 # Change real labels for pseudo labels
                 for i in range(matrix.shape[0]):
                     index = int(matrix[i, 0].item())
+                    pdb.set_trace()
                     assert torch.allclose(matrix[i, 3], self.labeled_loader.dataset.targets[index])
                     pseudo_labels = int(matrix[i, 2].item())
                     self.labeled_loader.dataset.targets[index] = pseudo_labels
@@ -301,7 +302,6 @@ class PseudoLabelTrainer:
             matrix[i, 3] = ground_truth
             if pseudo_label == ground_truth:
                 matrix[i, 4] = 1
-            pdb.set_trace()
         return matrix
 
     def evaluate_loss_acc(self, step):
