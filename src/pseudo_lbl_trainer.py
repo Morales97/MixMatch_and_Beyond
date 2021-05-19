@@ -37,7 +37,7 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 100
+        self.steps_pseudo_lbl = 5000
         self.tau = 0.99  # confidence threshold
         self.min_unlbl_samples = 1000
 
@@ -150,47 +150,9 @@ class PseudoLabelTrainer:
                 self.save_model(step=step, path=f'../models/checkpoint_{step}.pt')
 
             # Generate Pseudo-labels
-            '''
             if step > 0 and not step % self.steps_pseudo_lbl:
-                pseudo_labels, indices, unlbl_indices = self.get_pseudo_labels()
-
-
-                # Check how many pseudo labels are correct. Needs debug
-                if True:
-                    true_labels = self.unlabeled_loader.dataset.targets
-                    correct_pseudo_labels = 0
-                    for i, index in enumerate(indices):
-                        if pseudo_labels[i] == true_labels[int(index.item())]:
-                            correct_pseudo_labels += 1
-                    print('*** %d pseudo labels generated, %d correspond to the ground truth' %
-                          (pseudo_labels.shape[0], correct_pseudo_labels))
-
-                # Update loaders
-                new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
-                new_unlbl_idx = np.int_(unlbl_indices.tolist())
-                self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, new_val_idx = \
-                    get_dataloaders_with_index(path='../data',
-                                               batch_size=self.batch_size,
-                                               num_labeled=self.num_labeled,
-                                               which_dataset='cifar10',
-                                               lbl_idxs=new_lbl_idx,
-                                               unlbl_idxs=new_unlbl_idx,
-                                               valid_idxs=self.val_idx)
-                assert np.allclose(self.val_idx, new_val_idx)
-                
-                iter_labeled_loader = iter(self.labeled_loader)
-                iter_unlabeled_loader = iter(self.unlabeled_loader)
-
-                print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
-                      len(new_unlbl_idx), len(self.val_idx)))
-            '''
-
-            # Record unlabeled guesses and confidence
-            if step > 0 and not step % self.steps_pseudo_lbl:
-            #if True:
                 # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
-                matrix = self.get_all_pseudo_labels()
-                pdb.set_trace()
+                matrix = self.get_pseudo_labels()
 
                 for i, tau in enumerate([0.9, 0.95, 0.97, 0.99, 0.999]):
                     pseudo_labels = matrix[matrix[:, 1] >= tau, :]
@@ -199,6 +161,7 @@ class PseudoLabelTrainer:
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d  %d  %.2f '
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
+                '''
                 unlbl_indices = matrix[matrix[:, 1] < self.tau, 0]
                 matrix = matrix[matrix[:, 1] >= self.tau, :]
                 indices = matrix[:, 0]
@@ -206,12 +169,8 @@ class PseudoLabelTrainer:
                 new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
                 new_unlbl_idx = np.int_(unlbl_indices.tolist())
                 self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, new_val_idx = \
-                    get_dataloaders_with_index(path='../data',
-                                               batch_size=self.batch_size,
-                                               num_labeled=self.num_labeled,
-                                               which_dataset='cifar10',
-                                               lbl_idxs=new_lbl_idx,
-                                               unlbl_idxs=new_unlbl_idx,
+                    get_dataloaders_with_index(path='../data', batch_size=self.batch_size, num_labeled=self.num_labeled,
+                                               which_dataset='cifar10', lbl_idxs=new_lbl_idx, unlbl_idxs=new_unlbl_idx,
                                                valid_idxs=self.val_idx)
 
                 assert np.allclose(self.val_idx, new_val_idx), 'error'
@@ -220,18 +179,16 @@ class PseudoLabelTrainer:
                 # Change real labels for pseudo labels
                 for i in range(matrix.shape[0]):
                     index = int(matrix[i, 0].item())
-                    if not int(matrix[i, 3]) == self.labeled_loader.dataset.targets[index]:
-                        pdb.set_trace()
                     assert int(matrix[i, 3]) == self.labeled_loader.dataset.targets[index]
                     pseudo_labels = int(matrix[i, 2].item())
                     self.labeled_loader.dataset.targets[index] = pseudo_labels
 
                 iter_labeled_loader = iter(self.labeled_loader)
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
-
+                
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
-
+                '''
                 # Save
                 torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
 
@@ -243,40 +200,7 @@ class PseudoLabelTrainer:
         self.writer.flush()
 
     # --- support functions ---
-
     def get_pseudo_labels(self):
-
-        pseudo_labels_matrix = torch.tensor([]).to(self.device)
-        new_unlbl_indxs = torch.tensor([]).to(self.device)
-
-        for batch_idx, (data, target, idx) in enumerate(self.unlabeled_loader_original):
-            with torch.no_grad():
-                # Get predictions for unlabeled samples
-                out = self.model(data.to(self.device))
-                p_out = torch.softmax(out, dim=1)   # turn into probability distribution
-                confidence, pseudo_lbl = torch.max(p_out, dim=1)
-                pseudo_lbl_batch = torch.vstack((confidence, pseudo_lbl, idx.to(self.device)))
-
-                # List indeces of unlabeled images below threshold
-                unlbl_indxs = pseudo_lbl_batch[2, pseudo_lbl_batch[0] < self.tau]
-                # Apply threshold
-                pseudo_lbl_batch = pseudo_lbl_batch[:, pseudo_lbl_batch[0] >= self.tau]
-
-                new_unlbl_indxs = torch.cat((new_unlbl_indxs, unlbl_indxs))
-                pseudo_labels_matrix = torch.cat((pseudo_labels_matrix, pseudo_lbl_batch), dim=1)
-
-        pseudo_labels = pseudo_labels_matrix[1]
-        indices = pseudo_labels_matrix[2]
-
-        if new_unlbl_indxs.shape[0] < self.min_unlbl_samples:
-            diff = self.min_unlbl_samples - new_unlbl_indxs.shape[0]
-            new_unlbl_indxs = torch.cat((new_unlbl_indxs, indices[-diff:]))
-            pseudo_labels = pseudo_labels[:-diff]
-            indices = indices[:-diff]
-
-        return pseudo_labels, indices, new_unlbl_indxs
-
-    def get_all_pseudo_labels(self):
         matrix = torch.tensor([], device=self.device)
 
         # Iterate through unlabeled loader
