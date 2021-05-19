@@ -232,7 +232,7 @@ class PseudoLabelTrainer:
         return pseudo_labels, indices, new_unlbl_indxs
 
     def get_all_pseudo_labels(self):
-        matrix = torch.tensor([]).to(self.device)
+        matrix = torch.tensor([], device=self.device)
 
         # Iterate through unlabeled loader
         for batch_idx, (data, target, idx) in enumerate(self.unlabeled_loader_original):
@@ -247,8 +247,8 @@ class PseudoLabelTrainer:
 
         n_unlabeled = matrix.shape[0]
         true_labels = self.unlabeled_loader.dataset.targets
-        matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled))).T   # (n_unlabeled, 4)
-        matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled))).T   # (n_unlabeled, 5)
+        matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled, device=self.device))).T   # (n_unlabeled, 4)
+        matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled, device=self.device))).T   # (n_unlabeled, 5)
 
         # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
 
