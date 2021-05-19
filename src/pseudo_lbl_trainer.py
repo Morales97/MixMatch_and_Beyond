@@ -216,9 +216,9 @@ class PseudoLabelTrainer:
 
                 # Change real labels for pseudo labels
                 for i in range(matrix.shape[0]):
-                    index = matrix[i, 0]
-                    assert matrix[i, 3] == self.labeled_loader.dataset.targets[index]
-                    pseudo_labels = matrix[i, 2]
+                    index = int(matrix[i, 0].item())
+                    assert np.allclose(matrix[i, 3], self.labeled_loader.dataset.targets[index])
+                    pseudo_labels = int(matrix[i, 2].item())
                     self.labeled_loader.dataset.targets[index] = pseudo_labels
 
                 iter_labeled_loader = iter(self.labeled_loader)
@@ -295,11 +295,11 @@ class PseudoLabelTrainer:
         # Check if pseudo label is ground truth
         for i in range(n_unlabeled):
             index = int(matrix[i, 0].item())
-            pseudo_label = matrix[i, 2]
+            pseudo_label = matrix[index, 2]
             ground_truth = true_labels[index]
-            matrix[i, 3] = ground_truth
+            matrix[index, 3] = ground_truth
             if pseudo_label == ground_truth:
-                matrix[i, 4] = 1
+                matrix[index, 4] = 1
 
         return matrix
 
