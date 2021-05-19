@@ -291,7 +291,7 @@ class PseudoLabelTrainer:
                 matrix = torch.cat((matrix, pseudo_lbl_batch), dim=0)  # (n_unlabeled, 3)
 
         n_unlabeled = matrix.shape[0]
-        indices = matrix[:, 0].cpu().numpy()
+        indices = matrix[:, 0].cpu().numpy().astype(int)
         ground_truth = self.targets_list[indices]
         matrix = torch.vstack((matrix.T, torch.tensor(ground_truth, device=self.device))).T   # (n_unlabeled, 4)
         matrix = torch.vstack((matrix.T, torch.zeros(n_unlabeled, device=self.device))).T   # (n_unlabeled, 5)
