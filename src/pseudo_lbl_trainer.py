@@ -14,8 +14,7 @@ import pdb
 class PseudoLabelTrainer:
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
-                 sgd, steps_validation, steps_checkpoint, dataset, model_state_dict=None, ema_state_dict=None,
-                 optim_state_dict=None):
+                 sgd, steps_validation, steps_checkpoint, dataset):
 
         self.n_steps = n_steps
         self.start_step = 0
@@ -37,8 +36,8 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 10000
-        self.tau = 0.99  # confidence threshold
+        self.steps_pseudo_lbl = 5000
+        self.tau = 0.95  # confidence threshold
         self.min_unlbl_samples = 1000
 
         depth, k, n_out = model_params
@@ -162,7 +161,7 @@ class PseudoLabelTrainer:
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d\t%d\t%.2f '
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
-                '''
+
                 unlbl_mask1 = (matrix[:, 1] < self.tau)
                 #unlbl_mask2 = (matrix[:, 1] >= 0.99)
                 pseudo_mask = (matrix[:, 1] >= self.tau)
@@ -198,9 +197,9 @@ class PseudoLabelTrainer:
                 print('Generated labels: %d\t Correct: %d\t Accuracy: %.2f' % (matrix.shape[0], correct, pseudo_acc))
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
-                '''
+
                 # Save
-                # torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
+                torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
 
 
         # --- Training finished ---
