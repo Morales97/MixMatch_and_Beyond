@@ -162,10 +162,10 @@ class PseudoLabelTrainer:
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
                 # Generate pseudo set based on threshold (same for all classes)
-                # self.generate_pseudo_set(matrix)
+                # matrix = self.generate_pseudo_set(matrix)
 
                 # Generate pseudo set balanced (top 90% guesses of each class)
-                self.generate_pseudo_set_balanced(matrix)
+                matrix = self.generate_pseudo_set_balanced(matrix)
 
                 iter_labeled_loader = iter(self.labeled_loader)
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
@@ -244,6 +244,7 @@ class PseudoLabelTrainer:
                                                                                      len(new_unlbl_idx),
                                                                                      len(self.val_idx)))
 
+        return matrix
 
     def generate_pseudo_set_balanced(self, matrix_all):
 
@@ -283,7 +284,7 @@ class PseudoLabelTrainer:
         print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                                                                                      len(new_unlbl_idx),
                                                                                      len(self.val_idx)))
-
+        return matrix
 
     def evaluate_loss_acc(self, step):
         val_loss, val_acc = self.evaluate(self.val_loader)
