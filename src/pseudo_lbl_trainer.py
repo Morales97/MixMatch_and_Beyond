@@ -254,8 +254,8 @@ class PseudoLabelTrainer:
         for i in range(10):
             matrix_label = matrix_all[matrix_all[:, 2] == i, :]
             threshold = torch.quantile(matrix_label[:, 1], 0.9)     # returns prob in the percentile 90
-            matrix_label = matrix_label[matrix_label[:, 1] >= threshold, :]
             unlbl_idxs = matrix_label[matrix_label[:, 1] < threshold, 0]
+            matrix_label = matrix_label[matrix_label[:, 1] >= threshold, :]
             matrix = torch.cat((matrix, matrix_label), dim=0)
             unlbl_indices = torch.cat((unlbl_indices, unlbl_idxs))
         indices = matrix[:, 0]
