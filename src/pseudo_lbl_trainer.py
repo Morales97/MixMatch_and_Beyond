@@ -37,7 +37,7 @@ class PseudoLabelTrainer:
         print(self.device)
 
         # Pseudo label
-        self.steps_pseudo_lbl = 5000
+        self.steps_pseudo_lbl = 10000
         self.tau = 0.99  # confidence threshold
         self.min_unlbl_samples = 1000
 
@@ -161,7 +161,8 @@ class PseudoLabelTrainer:
                     correct = torch.sum(pseudo_labels[:, 4]).item()
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d\t%d\t%.2f '
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
-                
+
+                '''
                 unlbl_mask1 = (matrix[:, 1] < self.tau)
                 #unlbl_mask2 = (matrix[:, 1] >= 0.99)
                 pseudo_mask = (matrix[:, 1] >= self.tau)
@@ -197,7 +198,7 @@ class PseudoLabelTrainer:
                 print('Generated labels: %d\t Correct: %d\t Accuracy: %.2f' % (matrix.shape[0], correct, pseudo_acc))
                 print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
                       len(new_unlbl_idx), len(self.val_idx)))
-
+                '''
                 # Save
                 # torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
 
