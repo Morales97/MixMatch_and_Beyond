@@ -161,46 +161,17 @@ class PseudoLabelTrainer:
                     print('Confidence threshold %.3f\t Generated / Correct / Precision\t %d\t%d\t%.2f '
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
+                # Generate pseudo set based on threshold (same for all classes)
+                # self.generate_pseudo_set(matrix)
 
-                unlbl_mask1 = (matrix[:, 1] < self.tau)
-                #unlbl_mask2 = (matrix[:, 1] >= 0.99)
-                pseudo_mask = (matrix[:, 1] >= self.tau)
-                #pseudo_mask = (matrix[:, 1] >= self.tau) & (matrix[:, 1] < 0.99)
-
-                # unlbl_indices = torch.cat((matrix[unlbl_mask1, 0], matrix[unlbl_mask2, 0]))
-                unlbl_indices = matrix[unlbl_mask1, 0]
-                matrix = matrix[pseudo_mask, :]
-                indices = matrix[:, 0]
-
-                new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
-                new_unlbl_idx = np.int_(unlbl_indices.tolist())
-                self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, new_val_idx = \
-                    get_dataloaders_with_index(path='../data', batch_size=self.batch_size, num_labeled=self.num_labeled,
-                                               which_dataset='cifar10', lbl_idxs=new_lbl_idx, unlbl_idxs=new_unlbl_idx,
-                                               valid_idxs=self.val_idx)
-
-                assert np.allclose(self.val_idx, new_val_idx), 'error'
-                assert (len(self.labeled_loader.sampler) + len(self.unlabeled_loader.sampler) + len(self.val_loader.sampler) == 50000), 'error'
-
-                # Change real labels for pseudo labels
-                for i in range(matrix.shape[0]):
-                    index = int(matrix[i, 0].item())
-                    assert int(matrix[i, 3]) == self.labeled_loader.dataset.targets[index]
-                    pseudo_labels = int(matrix[i, 2].item())
-                    self.labeled_loader.dataset.targets[index] = pseudo_labels
+                # Generate pseudo set balanced (top 90% guesses of each class)
+                self.generate_pseudo_set_balanced(matrix)
 
                 iter_labeled_loader = iter(self.labeled_loader)
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
 
-                correct = torch.sum(matrix[:, 4]).item()
-                pseudo_acc = correct / matrix.shape[0] * 100 if matrix.shape[0] > 0 else 0
-                print('Generated labels: %d\t Correct: %d\t Accuracy: %.2f' % (matrix.shape[0], correct, pseudo_acc))
-                print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
-                      len(new_unlbl_idx), len(self.val_idx)))
-
                 # Save
-                torch.save(matrix, f'../models/pseudo_matrix_{step}.pt')
-
+                torch.save(matrix, f'../models/pseudo_matrix_balanced{step}.pt')
 
         # --- Training finished ---
         test_val, test_acc = self.evaluate(self.test_loader)
@@ -236,6 +207,85 @@ class PseudoLabelTrainer:
             if matrix[i, 2] == matrix[i, 3]:
                 matrix[i, 4] = 1
         return matrix
+
+    def generate_pseudo_set(self, matrix):
+
+        unlbl_mask1 = (matrix[:, 1] < self.tau)
+        # unlbl_mask2 = (matrix[:, 1] >= 0.99)
+        pseudo_mask = (matrix[:, 1] >= self.tau)
+        # pseudo_mask = (matrix[:, 1] >= self.tau) & (matrix[:, 1] < 0.99)
+
+        # unlbl_indices = torch.cat((matrix[unlbl_mask1, 0], matrix[unlbl_mask2, 0]))
+        unlbl_indices = matrix[unlbl_mask1, 0]
+        matrix = matrix[pseudo_mask, :]
+        indices = matrix[:, 0]
+
+        new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
+        new_unlbl_idx = np.int_(unlbl_indices.tolist())
+        self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, new_val_idx = \
+            get_dataloaders_with_index(path='../data', batch_size=self.batch_size, num_labeled=self.num_labeled,
+                                       which_dataset='cifar10', lbl_idxs=new_lbl_idx, unlbl_idxs=new_unlbl_idx,
+                                       valid_idxs=self.val_idx)
+
+        assert np.allclose(self.val_idx, new_val_idx), 'error'
+        assert (len(self.labeled_loader.sampler) + len(self.unlabeled_loader.sampler) + len(
+            self.val_loader.sampler) == 50000), 'error'
+
+        # Change real labels for pseudo labels
+        for i in range(matrix.shape[0]):
+            index = int(matrix[i, 0].item())
+            assert int(matrix[i, 3]) == self.labeled_loader.dataset.targets[index]
+            pseudo_labels = int(matrix[i, 2].item())
+            self.labeled_loader.dataset.targets[index] = pseudo_labels
+
+        correct = torch.sum(matrix[:, 4]).item()
+        pseudo_acc = correct / matrix.shape[0] * 100 if matrix.shape[0] > 0 else 0
+        print('Generated labels: %d\t Correct: %d\t Accuracy: %.2f' % (matrix.shape[0], correct, pseudo_acc))
+        print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
+                                                                                     len(new_unlbl_idx),
+                                                                                     len(self.val_idx)))
+
+
+    def generate_pseudo_set_balanced(self, matrix_all):
+
+        unlbl_indices = torch.tensor([], device=self.device)
+
+        # Get top 10% confident guesses for each class
+        matrix = torch.tensor([], device=self.device)
+        for i in range(10):
+            matrix_label = matrix_all[matrix_all[:, 2] == i, :]
+            threshold = torch.quantile(matrix_label[:, 1], 0.9)     # returns prob in the percentile 90
+            matrix_label = matrix_label[matrix_label[:, 1] >= threshold, :]
+            unlbl_idxs = matrix_label[matrix_label[:, 1] < threshold, 0]
+            matrix = torch.cat((matrix, matrix_label), dim=0)
+            unlbl_indices = torch.cat((unlbl_indices, unlbl_idxs))
+        indices = matrix[:, 0]
+
+        new_lbl_idx = np.int_(torch.cat((torch.tensor(self.lbl_idx, device=self.device), indices)).tolist())
+        new_unlbl_idx = np.int_(unlbl_indices.tolist())
+        self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, _, _, new_val_idx = \
+            get_dataloaders_with_index(path='../data', batch_size=self.batch_size, num_labeled=self.num_labeled,
+                                       which_dataset='cifar10', lbl_idxs=new_lbl_idx, unlbl_idxs=new_unlbl_idx,
+                                       valid_idxs=self.val_idx)
+
+        assert np.allclose(self.val_idx, new_val_idx), 'error'
+        assert (len(self.labeled_loader.sampler) + len(self.unlabeled_loader.sampler) + len(
+            self.val_loader.sampler) == 50000), 'error'
+
+        # Change real labels for pseudo labels
+        for i in range(matrix.shape[0]):
+            index = int(matrix[i, 0].item())
+            assert int(matrix[i, 3]) == self.labeled_loader.dataset.targets[index]
+            pseudo_labels = int(matrix[i, 2].item())
+            self.labeled_loader.dataset.targets[index] = pseudo_labels
+
+        correct = torch.sum(matrix[:, 4]).item()
+        pseudo_acc = correct / matrix.shape[0] * 100 if matrix.shape[0] > 0 else 0
+        print('Generated labels: %d\t Correct: %d\t Accuracy: %.2f' % (matrix.shape[0], correct, pseudo_acc))
+        print('Training with Labeled / Unlabeled / Validation samples\t %d %d %d' % (len(new_lbl_idx),
+                                                                                     len(new_unlbl_idx),
+                                                                                     len(self.val_idx)))
+
 
     def evaluate_loss_acc(self, step):
         val_loss, val_acc = self.evaluate(self.val_loader)
