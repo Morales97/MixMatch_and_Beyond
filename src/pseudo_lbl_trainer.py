@@ -228,8 +228,7 @@ class PseudoLabelTrainer:
                                        valid_idxs=self.val_idx)
 
         assert np.allclose(self.val_idx, new_val_idx), 'error'
-        assert (len(self.labeled_loader.sampler) + len(self.unlabeled_loader.sampler) + len(
-            self.val_loader.sampler) == 50000), 'error'
+        assert (len(self.labeled_loader.sampler) + len(self.unlabeled_loader.sampler) + len(self.val_loader.sampler) == 50000), 'error'
 
         # Change real labels for pseudo labels
         for i in range(matrix.shape[0]):
@@ -269,8 +268,7 @@ class PseudoLabelTrainer:
                                        valid_idxs=self.val_idx)
 
         assert np.allclose(self.val_idx, new_val_idx), 'error'
-        assert (len(self.labeled_loader.sampler) + len(self.unlabeled_loader.sampler) + len(
-            self.val_loader.sampler) == 50000), 'error'
+        assert (len(self.labeled_loader.sampler) + len(self.unlabeled_loader.sampler) + len(self.val_loader.sampler) == 50000), 'error'
 
         # Change real labels for pseudo labels
         for i in range(matrix.shape[0]):
