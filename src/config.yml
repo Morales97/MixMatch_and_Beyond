@@ -1,7 +1,7 @@
 cifar10:
   batch_size: 64
   num_outputs: 10
-  num_labeled: 4000
+  num_labeled: 250
 
 svhn:
   batch_size: 64

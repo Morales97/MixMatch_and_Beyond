@@ -152,6 +152,7 @@ class PseudoLabelTrainer:
             if step > 0 and not step % self.steps_pseudo_lbl:
                 # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
                 matrix = self.get_pseudo_labels()
+                torch.save(matrix, f'../models/pseudo_matrix_balanced{step}.pt')
 
                 m2 = matrix[matrix[:, 1] >= 0.9, :]
                 for i, tau in enumerate([0.9, 0.95, 0.97, 0.99, 0.999]):
@@ -171,7 +172,7 @@ class PseudoLabelTrainer:
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
 
                 # Save
-                torch.save(matrix, f'../models/pseudo_matrix_balanced{step}.pt')
+                # torch.save(matrix, f'../models/pseudo_matrix_balanced{step}.pt')
 
         # --- Training finished ---
         test_val, test_acc = self.evaluate(self.test_loader)
