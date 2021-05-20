@@ -9,7 +9,7 @@ svhn:
   num_labeled: 250
 
 MixMatchTrainer:
-  n_steps: 200000
+  n_steps: 300000
   K: 2
   dataset: 'cifar10' #  'cifar10' or 'svhn'
 
