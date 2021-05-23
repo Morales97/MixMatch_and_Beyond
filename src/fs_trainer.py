@@ -46,7 +46,7 @@ class FullySupervisedTrainer:
             self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay,
                                        nesterov=True)
             self.learning_steps = lr_decay
-            self.ema = None
+            self.ema_optimizer = None
 
         self.criterion = nn.CrossEntropyLoss()
 
@@ -59,10 +59,10 @@ class FullySupervisedTrainer:
         self.writer = SummaryWriter()
 
     def train(self):
-        self.model.train()
         iter_train_loader = iter(self.train_loader)
 
         for step in range(self.n_steps):
+            self.model.train()
             # Get next batch of data
 
             try:
@@ -95,12 +95,12 @@ class FullySupervisedTrainer:
             self.optimizer.step()
             self.ema_optimizer.step()
 
-            '''
+
             # Decaying learning rate. Used in with SGD Nesterov optimizer
-            if not self.ema and step in self.learning_steps:
+            if not self.ema_optimizer and step in self.learning_steps:
                 for g in self.optimizer.param_groups:
                     g['lr'] *= 0.2
-            '''
+
 
             # Evaluate model
             self.model.eval()
