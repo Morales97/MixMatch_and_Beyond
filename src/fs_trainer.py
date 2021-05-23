@@ -14,7 +14,7 @@ import pdb
 class FullySupervisedTrainer:
 
     def __init__(self, batch_size, model_params, n_steps, K, optimizer, adam,
-                 sgd, steps_validation, steps_checkpoint, dataset):
+                 sgd, steps_validation, steps_checkpoint, dataset='cifar10'):
 
         self.n_steps = n_steps
         self.start_step = 0

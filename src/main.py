@@ -7,7 +7,7 @@ import torch
 from d07_visualization.viz_training import plot_acc, plot_training_loss, plot_losses
 from mixmatch_trainer import MixMatchTrainer
 from pseudo_lbl_trainer import PseudoLabelTrainer
-from fs_tainer import FullySupervisedTrainer
+from fs_trainer import FullySupervisedTrainer
 
 if __name__ == '__main__':
     print("Starting main...")
