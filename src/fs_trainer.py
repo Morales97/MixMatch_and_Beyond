@@ -13,12 +13,11 @@ import pdb
 
 class FullySupervisedTrainer:
 
-    def __init__(self, batch_size, model_params, n_steps, K, optimizer, adam,
+    def __init__(self, batch_size, model_params, n_steps, optimizer, adam,
                  sgd, steps_validation, steps_checkpoint, dataset='cifar10'):
 
         self.n_steps = n_steps
         self.start_step = 0
-        self.K = K
         self.steps_validation = steps_validation
         self.steps_checkpoint = steps_checkpoint
         self.num_labeled = 45000
@@ -34,7 +33,6 @@ class FullySupervisedTrainer:
         for param in self.ema_model.parameters():
             param.detach_()
 
-
         if optimizer == 'adam':
             self.lr, self.weight_decay = adam
             self.momentum, self.lr_decay = None, None
@@ -42,10 +40,9 @@ class FullySupervisedTrainer:
             self.ema_optimizer = WeightEMA(self.model, self.ema_model, self.lr, alpha=0.999)
 
         else:
-            lr, momentum, weight_decay, lr_decay = sgd
-            self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay,
+            self.lr, self.momentum, self.weight_decay, self.lr_decay = sgd
+            self.optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay,
                                        nesterov=True)
-            self.learning_steps = lr_decay
             self.ema_optimizer = None
 
         self.criterion = nn.CrossEntropyLoss()
@@ -93,14 +90,13 @@ class FullySupervisedTrainer:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            self.ema_optimizer.step()
-
+            if self.ema_optimizer:
+                self.ema_optimizer.step()
 
             # Decaying learning rate. Used in with SGD Nesterov optimizer
-            if not self.ema_optimizer and step in self.learning_steps:
+            if not self.ema_optimizer and step in self.lr_decay:
                 for g in self.optimizer.param_groups:
                     g['lr'] *= 0.2
-
 
             # Evaluate model
             self.model.eval()
@@ -112,7 +108,6 @@ class FullySupervisedTrainer:
             # Save checkpoint
             if step > 10000 and not step % self.steps_checkpoint:
                 self.save_model(step=step, path=f'../models/checkpoint_{step}.pt')
-
 
         # --- Training finished ---
         test_val, test_acc = self.evaluate(self.test_loader)
@@ -160,10 +155,9 @@ class FullySupervisedTrainer:
         acc = correct / total * 100
         return loss, acc
 
-
     def save_model(self, step=None, path='../models/model.pt'):
         if not step:
-            step = self.n_steps     # Training finished
+            step = self.n_steps  # Training finished
 
         torch.save({
             'step': step,
@@ -203,7 +197,6 @@ class FullySupervisedTrainer:
         print('Model ' + model_name + ' loaded.')
 
 
-
 class WeightEMA(object):
     def __init__(self, model, ema_model, lr, alpha=0.999):
         self.model = model
@@ -224,4 +217,4 @@ class WeightEMA(object):
                 ema_param.mul_(self.alpha)
                 ema_param.add_(param * one_minus_alpha)
                 # Apply Weight Decay
-                param.mul_(1 - self.wd) # Beware that this "param" affects the main model. It is passed by reference
+                param.mul_(1 - self.wd)  # Beware that this "param" affects the main model. It is passed by reference
