@@ -14,7 +14,7 @@ import pdb
 class FullySupervisedTrainer:
 
     def __init__(self, batch_size, model_params, n_steps, optimizer, adam,
-                 sgd, steps_validation, steps_checkpoint, dataset='cifar10'):
+                 sgd, steps_validation, steps_checkpoint, dataset, save_path):
 
         self.n_steps = n_steps
         self.start_step = 0
@@ -22,7 +22,13 @@ class FullySupervisedTrainer:
         self.steps_checkpoint = steps_checkpoint
         self.num_labeled = 45000
         self.train_loader, _, self.val_loader, self.test_loader, self.lbl_idx, _, self.val_idx = \
-            get_dataloaders_with_index(path='../data', batch_size=batch_size, num_labeled=45000, which_dataset=dataset)
+            get_dataloaders_with_index(path='../data',
+                                       batch_size=batch_size,
+                                       num_labeled=50000,
+                                       which_dataset=dataset,
+                                       validation=False)
+        print('Labeled samples: ' + str(len(self.train_loader.sampler)))
+
         self.batch_size = self.train_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
@@ -41,8 +47,7 @@ class FullySupervisedTrainer:
 
         else:
             self.lr, self.momentum, self.weight_decay, self.lr_decay = sgd
-            self.optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay,
-                                       nesterov=True)
+            self.optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay, nesterov=True)
             self.ema_optimizer = None
 
         self.criterion = nn.CrossEntropyLoss()
@@ -53,6 +58,7 @@ class FullySupervisedTrainer:
 
         self.augment = Augment(K=1)
 
+        self.path = save_path
         self.writer = SummaryWriter()
 
     def train(self):
@@ -61,7 +67,6 @@ class FullySupervisedTrainer:
         for step in range(self.n_steps):
             self.model.train()
             # Get next batch of data
-
             try:
                 x_input, x_labels, _ = iter_train_loader.next()
                 # Check if batch size has been cropped for last batch
@@ -103,11 +108,11 @@ class FullySupervisedTrainer:
             if step > 0 and not step % self.steps_validation:
                 val_acc, is_best = self.evaluate_loss_acc(step)
                 if is_best:
-                    self.save_model(step=step, path='../models/best_checkpoint.pt')
+                    self.save_model(step=step, path=f'{self.path}/best_checkpoint.pt')
 
             # Save checkpoint
             if step > 10000 and not step % self.steps_checkpoint:
-                self.save_model(step=step, path=f'../models/checkpoint_{step}.pt')
+                self.save_model(step=step, path=f'{self.path}/checkpoint_{step}.pt')
 
         # --- Training finished ---
         test_val, test_acc = self.evaluate(self.test_loader)
@@ -144,7 +149,10 @@ class FullySupervisedTrainer:
         with torch.no_grad():
             for i, data in enumerate(dataloader, 0):
                 inputs, labels = data[0].to(self.device), data[1].to(self.device)
-                outputs = self.model(inputs)
+                if self.ema_optimizer:
+                    outputs = self.ema_model(inputs)
+                else:
+                    outputs = self.model(inputs)
                 loss += self.criterion(outputs, labels).item()
 
                 _, predicted = torch.max(outputs.data, 1)
@@ -201,13 +209,11 @@ class WeightEMA(object):
     def __init__(self, model, ema_model, lr, alpha=0.999):
         self.model = model
         self.ema_model = ema_model
+        self.ema_model.eval()
         self.alpha = alpha
         self.params = list(model.state_dict().values())
         self.ema_params = list(ema_model.state_dict().values())
         self.wd = 0.02 * lr
-
-        for param, ema_param in zip(self.params, self.ema_params):
-            param.data.copy_(ema_param.data)
 
     def step(self):
         one_minus_alpha = 1.0 - self.alpha

@@ -26,6 +26,19 @@ def plot_acc(acc_train, acc_test, step=1):
     #plt.show()
 
 
+def plot_accuracies(acc_train, acc_test, step=1):
+    x = np.linspace(1, len(acc_train)*step, len(acc_train))
+    plt.plot(x, acc_train, label='Training')
+    plt.plot(x, acc_test, label='Validation')
+    plt.title('Accuracy')
+    plt.xlabel('Steps')
+    plt.ylabel('%')
+    plt.legend()
+    plt.savefig('../models/accuracy.png', format='png')
+    #plt.show()
+
+
+
 def plot_losses(loss, lx, lu, lu_weighted):
     x = np.linspace(1, len(loss), len(loss))
     plt.plot(x, loss, label='Total loss')

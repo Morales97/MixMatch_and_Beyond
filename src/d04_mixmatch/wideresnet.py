@@ -93,21 +93,6 @@ class WideResNet(nn.Module):
         self.linear = nn.Linear(n_features[3], n_out)
 
 
-        '''
-        # Initialize weights
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight.data)
-                m.bias.data.zero_()
-        '''
-
-
     def forward(self, x):
         x = self.conv1(x)
         x = self.conv_group1(x)
