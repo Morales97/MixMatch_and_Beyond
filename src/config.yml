@@ -1,7 +1,7 @@
 cifar10:
   batch_size: 64
   num_outputs: 10
-  num_labeled: 250
+  num_labeled: 4000
 
 svhn:
   batch_size: 64
@@ -9,7 +9,7 @@ svhn:
   num_labeled: 250
 
 MixMatchTrainer:
-  n_steps: 300000
+  n_steps: 200000
   K: 2
   dataset: 'cifar10' #  'cifar10' or 'svhn'
 
@@ -20,7 +20,7 @@ MixMatchTrainer:
   steps_validation: 1000 # steps to print validation losses and accuracy
   steps_checkpoint: 5000
 
-  optimizer: 'sgd'
+  optimizer: 'adam'
   adam:
     lr: 0.002
     weight_decay: 0 # 0.0004

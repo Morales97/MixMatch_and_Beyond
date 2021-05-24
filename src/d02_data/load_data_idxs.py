@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 
 
 def get_dataloaders_with_index(path="../../data", batch_size=64, num_labeled=250,
-                        lbl_idxs=None, unlbl_idxs=None, valid_idxs=None, which_dataset='cifar10'):
+                        lbl_idxs=None, unlbl_idxs=None, valid_idxs=None, which_dataset='cifar10', validation=True):
     """
     Returns data loaders for Semi-Supervised Learning
     Split between train_labeled, train_unlabeled, validation and test
@@ -39,8 +39,14 @@ def get_dataloaders_with_index(path="../../data", batch_size=64, num_labeled=250
     else :
         training_labels = train_set.targets
 
-    train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(training_labels,
-                                                                                     int(num_labeled / 10))
+    if validation:
+        train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(training_labels,
+                                                                                        int(num_labeled / 10))
+    else:
+        train_labeled_idxs, train_unlabeled_idxs = labeled_unlabeled_split(training_labels,
+                                                                                        int(num_labeled / 10))
+        val_idxs = []
+
     # If indexes are provided, use them
     if lbl_idxs is not None:
         train_labeled_idxs = lbl_idxs
@@ -59,6 +65,9 @@ def get_dataloaders_with_index(path="../../data", batch_size=64, num_labeled=250
                                                          sampler=train_unlabeled_sampler, num_workers=0)
     val_loader = DataLoader(train_set, batch_size=batch_size, sampler=val_sampler, num_workers=0)
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
+
+    if not validation:
+        val_loader = test_loader
 
     return train_labeled_loader, train_unlabeled_loader, val_loader, test_loader, train_labeled_idxs, train_unlabeled_idxs, val_idxs
 
@@ -80,6 +89,23 @@ def labeled_unlabeled_val_split(labels, n_labeled_per_class):
     np.random.shuffle(val_idxs)
 
     return train_labeled_idxs, train_unlabeled_idxs, val_idxs
+
+
+def labeled_unlabeled_split(labels, n_labeled_per_class):
+    labels = np.array(labels)
+    train_labeled_idxs = []
+    train_unlabeled_idxs = []
+    val_idxs = []
+
+    for i in range(10):
+        idxs = np.where(labels == i)[0]
+        np.random.shuffle(idxs)
+        train_labeled_idxs.extend(idxs[:n_labeled_per_class])
+        train_unlabeled_idxs.extend(idxs[n_labeled_per_class:])
+    np.random.shuffle(train_labeled_idxs)
+    np.random.shuffle(train_unlabeled_idxs)
+
+    return train_labeled_idxs, train_unlabeled_idxs
 
 
 class CustomCIFAR10(Dataset):

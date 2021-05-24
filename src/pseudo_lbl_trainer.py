@@ -23,13 +23,15 @@ class PseudoLabelTrainer:
         self.steps_checkpoint = steps_checkpoint
         self.num_labeled = num_lbls
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, self.lbl_idx, self.unlbl_idx, \
-            self.val_idx = get_dataloaders_with_index(path='../data', batch_size=batch_size, num_labeled=num_lbls, which_dataset=dataset)
+            self.val_idx = get_dataloaders_with_index(path='../data', batch_size=batch_size, num_labeled=num_lbls,
+                                                      which_dataset=dataset, validation=False)
         self.targets_list = np.array(self.labeled_loader.dataset.targets)
 
         # Make a deep copy of original unlabeled loader
         _, self.unlabeled_loader_original, _, _, _, _, _ \
             = get_dataloaders_with_index(path='../data', batch_size=batch_size, num_labeled=num_lbls, which_dataset=dataset,
                                          lbl_idxs=self.lbl_idx, unlbl_idxs=self.unlbl_idx, valid_idxs=self.val_idx)
+        print('Labeled samples: ' + str(len(self.labeled_loader.sampler)) + '\tUnlabeled samples: ' + str(len(self.unlabeled_loader.sampler)))
 
         self.batch_size = self.labeled_loader.batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -53,11 +55,10 @@ class PseudoLabelTrainer:
             self.ema_optimizer = WeightEMA(self.model, self.ema_model, self.lr, alpha=0.999)
 
         else:
-            lr, momentum, weight_decay, lr_decay = sgd
-            self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay,
+            self.lr, self.momentum, self.weight_decay, self.lr_decay = sgd
+            self.optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay,
                                        nesterov=True)
-            self.learning_steps = lr_decay
-            self.ema = None
+            self.ema_optimizer = None
 
         self.lambda_u_max, self.step_top_up = lambda_u
         self.loss_mixmatch = Loss(self.lambda_u_max, self.step_top_up)
@@ -128,14 +129,15 @@ class PseudoLabelTrainer:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            self.ema_optimizer.step()
+            if self.ema_optimizer:
+                self.ema_optimizer.step()
 
-            '''
+
             # Decaying learning rate. Used in with SGD Nesterov optimizer
-            if not self.ema and step in self.learning_steps:
+            if not self.ema_optimizer and step in self.lr_decay:
                 for g in self.optimizer.param_groups:
                     g['lr'] *= 0.2
-            '''
+
 
             # Evaluate model. Should do it at the start for checkpoint sanity check
             self.model.eval()
@@ -145,11 +147,11 @@ class PseudoLabelTrainer:
                     self.save_model(step=step, path=f'../models/best_checkpoint.pt')
 
             # Save checkpoint
-            if step > 10000 and not step % self.steps_checkpoint:
+            if step > 0 and not step % self.steps_checkpoint:
                 self.save_model(step=step, path=f'../models/checkpoint_{step}.pt')
 
             # Generate Pseudo-labels
-            if step > 0 and not step % self.steps_pseudo_lbl:
+            if step >= 200000 and not step % self.steps_pseudo_lbl:
                 # matrix columns: [index, confidence, pseudo_label, true_label, is_ground_truth]
                 matrix = self.get_pseudo_labels()
 
@@ -162,10 +164,10 @@ class PseudoLabelTrainer:
                           % (tau, total, correct, correct / (total + np.finfo(float).eps) * 100))
 
                 # Generate pseudo set based on threshold (same for all classes)
-                # matrix = self.generate_pseudo_set(matrix)
+                matrix = self.generate_pseudo_set(matrix)
 
                 # Generate pseudo set balanced (top 90% guesses of each class)
-                matrix = self.generate_pseudo_set_balanced(matrix)
+                # matrix = self.generate_pseudo_set_balanced(matrix)
 
                 iter_labeled_loader = iter(self.labeled_loader)
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
@@ -366,10 +368,10 @@ class PseudoLabelTrainer:
         self.ema_model.load_state_dict(saved_model['ema_state_dict'])
         self.optimizer.load_state_dict(saved_model['optimizer_state_dict'])
         self.start_step = saved_model['step']
-        # self.train_losses = saved_model['loss_train']
-        # self.val_losses = saved_model['loss_val']
-        # self.train_accuracies = saved_model['acc_train']
-        # self.val_accuracies = saved_model['acc_val']
+        self.train_losses = saved_model['loss_train']
+        self.val_losses = saved_model['loss_val']
+        self.train_accuracies = saved_model['acc_train']
+        self.val_accuracies = saved_model['acc_val']
         self.batch_size = saved_model['batch_size']
         self.num_labeled = saved_model['num_labels']
         self.labeled_loader, self.unlabeled_loader, self.val_loader, self.test_loader, self.lbl_idx, self.unlbl_idx, self.val_idx = \
