@@ -7,7 +7,7 @@ import torch
 from d07_visualization.viz_training import plot_acc, plot_training_loss, plot_losses
 from mixmatch_trainer import MixMatchTrainer
 from pseudo_lbl_trainer import PseudoLabelTrainer
-from fs_tainer import FullySupervisedTrainer
+from fs_trainer import FullySupervisedTrainer
 
 if __name__ == '__main__':
     print("Starting main...")
@@ -37,15 +37,15 @@ if __name__ == '__main__':
     # trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
     #                           optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset)
 
-    trainer = PseudoLabelTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
-                                 optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset)
+    # trainer = PseudoLabelTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params,
+    #                             optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset)
 
-    # trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
-    #                                 steps_validation, steps_checkpoint)
+    trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params,
+                                     steps_validation, steps_checkpoint)
 
     start_time = time.time()
 
-    trainer.load_checkpoint('250_lbl_180k_steps.pt')
+    # trainer.load_checkpoint('250_lbl_180k_steps.pt')
 
     trainer.train()
 
