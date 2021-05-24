@@ -315,7 +315,7 @@ class PseudoLabelTrainer:
         with torch.no_grad():
             for i, data in enumerate(dataloader, 0):
                 inputs, labels = data[0].to(self.device), data[1].to(self.device)
-                outputs = self.model(inputs)
+                outputs = self.ema_model(inputs)
                 loss += self.criterion(outputs, labels).item()
 
                 _, predicted = torch.max(outputs.data, 1)
@@ -424,13 +424,14 @@ class WeightEMA(object):
     def __init__(self, model, ema_model, lr, alpha=0.999):
         self.model = model
         self.ema_model = ema_model
+        self.ema_model.eval()
         self.alpha = alpha
         self.params = list(model.state_dict().values())
         self.ema_params = list(ema_model.state_dict().values())
         self.wd = 0.02 * lr
 
-        for param, ema_param in zip(self.params, self.ema_params):
-            param.data.copy_(ema_param.data)
+        #for param, ema_param in zip(self.params, self.ema_params):
+            #param.data.copy_(ema_param.data)
 
     def step(self):
         one_minus_alpha = 1.0 - self.alpha
