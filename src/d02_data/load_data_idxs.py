@@ -23,8 +23,8 @@ def get_dataloaders_with_index(path="../../data", batch_size=64, num_labeled=250
     ])
 
     if which_dataset == 'cifar10':
-        train_set = CustomCIFAR10(root=path, transform=transform)
-        test_set = CustomCIFAR10(root=path, transform=transform)
+        train_set = CustomCIFAR10(root=path, train=True, transform=transform)
+        test_set = CustomCIFAR10(root=path, train=False, transform=transform)
     elif which_dataset == 'svhn':
         raise Exception('Not supported yet')
     else:
@@ -40,11 +40,9 @@ def get_dataloaders_with_index(path="../../data", batch_size=64, num_labeled=250
         training_labels = train_set.targets
 
     if validation:
-        train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(training_labels,
-                                                                                        int(num_labeled / 10))
+        train_labeled_idxs, train_unlabeled_idxs, val_idxs = labeled_unlabeled_val_split(training_labels, int(num_labeled / 10))
     else:
-        train_labeled_idxs, train_unlabeled_idxs = labeled_unlabeled_split(training_labels,
-                                                                                        int(num_labeled / 10))
+        train_labeled_idxs, train_unlabeled_idxs = labeled_unlabeled_split(training_labels, int(num_labeled / 10))
         val_idxs = []
 
     # If indexes are provided, use them
@@ -59,10 +57,8 @@ def get_dataloaders_with_index(path="../../data", batch_size=64, num_labeled=250
     val_sampler = SubsetRandomSampler(val_idxs)
 
     # Create data loaders
-    train_labeled_loader = DataLoader(train_set, batch_size=batch_size,
-                                                       sampler=train_labeled_sampler, num_workers=0)
-    train_unlabeled_loader = DataLoader(train_set, batch_size=batch_size,
-                                                         sampler=train_unlabeled_sampler, num_workers=0)
+    train_labeled_loader = DataLoader(train_set, batch_size=batch_size, sampler=train_labeled_sampler, num_workers=0)
+    train_unlabeled_loader = DataLoader(train_set, batch_size=batch_size, sampler=train_unlabeled_sampler, num_workers=0)
     val_loader = DataLoader(train_set, batch_size=batch_size, sampler=val_sampler, num_workers=0)
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
@@ -112,10 +108,10 @@ class CustomCIFAR10(Dataset):
     """
     Returns triplet (data, target, index) in __getitem__()
     """
-    def __init__(self, root, transform):
+    def __init__(self, root, train, transform):
         self.cifar10 = datasets.CIFAR10(root=root,
                                         download=True,
-                                        train=True,
+                                        train=train,
                                         transform=transform)
         self.targets = self.cifar10.targets
 

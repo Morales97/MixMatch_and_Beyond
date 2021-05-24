@@ -1,3 +1,5 @@
+save_path: '../models/balanced_adam_4k'
+
 cifar10:
   batch_size: 64
   num_outputs: 10
