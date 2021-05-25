@@ -12,6 +12,7 @@ if __name__ == '__main__':
     print("Starting main...")
     configuration = yaml.load(Path("config.yml").read_text(), Loader=yaml.SafeLoader)
 
+    load_checkpoint = configuration['load_checkpoint']
     save_path = configuration['save_path']
     config = configuration['MixMatchTrainer']
     params = configuration['WideResNet']
@@ -28,6 +29,8 @@ if __name__ == '__main__':
     lambda_u_params = lambda_u['lambda_u_max'], lambda_u['step_top_up']
     steps_validation = config['steps_validation']
     steps_checkpoint = config['steps_checkpoint']
+    pseudo_labels = config['pseudo_labels']
+    tau = config['tau']
     optimizer = config['optimizer']
     adam_params = adam['lr'], adam['weight_decay']
     sgd_params = sgd['lr'], sgd['momentum'], sgd['weight_decay'], sgd['lr_decay_steps']
@@ -35,13 +38,15 @@ if __name__ == '__main__':
     wideresnet_params = (params['depth'], params['k'], params['n_out'])
 
 
-    trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params, optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path)
+    trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params, optimizer,
+                              adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path, pseudo_labels, tau)
 
     # trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path)
 
     start_time = time.time()
 
-    trainer.load_checkpoint('adam_4k/checkpoint_50000.pt')
+    if load_checkpoint != '':
+        trainer.load_checkpoint(load_checkpoint)
 
     trainer.train()
 

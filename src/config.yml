@@ -1,4 +1,5 @@
 save_path: '../models/balanced_adam_4k'
+load_checkpoint: ''
 
 cifar10:
   batch_size: 64
@@ -21,6 +22,8 @@ MixMatchTrainer:
 
   steps_validation: 1000 # steps to print validation losses and accuracy
   steps_checkpoint: 5000
+  pseudo_labels: True
+  tau: 0.99
 
   optimizer: 'adam'
   adam:
