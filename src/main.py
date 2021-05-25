@@ -30,7 +30,7 @@ if __name__ == '__main__':
     lambda_u_params = lambda_u['lambda_u_max'], lambda_u['step_top_up']
     steps_validation = config['steps_validation']
     steps_checkpoint = config['steps_checkpoint']
-    pseudo_labels = config['pseudo_labels']
+    use_pseudo = config['use_pseudo']
     tau = config['tau']
     optimizer = config['optimizer']
     adam_params = adam['lr'], adam['weight_decay']
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     if training_type == 'mixmatch':
         trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params, optimizer,
-                              adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path, pseudo_labels, tau)
+                              adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path, use_pseudo, tau)
     else:
         trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path)
 

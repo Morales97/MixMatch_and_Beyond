@@ -23,7 +23,7 @@ MixMatchTrainer:
 
   steps_validation: 1000 # steps to print validation losses and accuracy
   steps_checkpoint: 5000
-  pseudo_labels: True
+  use_pseudo: True
   tau: 0.99
 
   optimizer: 'adam'

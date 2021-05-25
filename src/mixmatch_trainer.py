@@ -14,7 +14,7 @@ import pdb
 class MixMatchTrainer:
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
-                 sgd, steps_validation, steps_checkpoint, dataset, save_path, pseudo_labels, tau):
+                 sgd, steps_validation, steps_checkpoint, dataset, save_path, use_pseudo, tau):
 
         self.validation_set = False
 
@@ -68,8 +68,8 @@ class MixMatchTrainer:
         self.path = save_path
 
         # -- Pseudo label --
-        self.use_pseudo = True
-        self.steps_pseudo_lbl = pseudo_labels
+        self.use_pseudo = use_pseudo
+        self.steps_pseudo_lbl = 5000
         self.tau = tau  # confidence threshold
         self.min_unlbl_samples = 1000
         # Make a deep copy of original unlabeled loader
