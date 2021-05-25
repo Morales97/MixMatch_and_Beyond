@@ -53,7 +53,7 @@ if __name__ == '__main__':
     seconds = time.time() - start_time
     print("Time elapsed: " + str(datetime.timedelta(seconds=seconds)))
 
-    trainer.save_model(f'{save_path}/last_one.pt')
+    trainer.save_model(step=n_steps, path=f'{save_path}/last_one.pt')
 
     # plot_training_loss(trainer.train_losses, trainer.val_losses)
     # plot_acc(trainer.train_accuracies, trainer.val_accuracies)
