@@ -14,6 +14,7 @@ if __name__ == '__main__':
 
     load_checkpoint = configuration['load_checkpoint']
     save_path = configuration['save_path']
+    training_type = configuration['training_type']
     config = configuration['MixMatchTrainer']
     params = configuration['WideResNet']
     adam = config['adam']
@@ -37,11 +38,11 @@ if __name__ == '__main__':
 
     wideresnet_params = (params['depth'], params['k'], params['n_out'])
 
-
-    trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params, optimizer,
+    if training_type == 'mixmatch':
+        trainer = MixMatchTrainer(batch_size, num_labeled, wideresnet_params, n_steps, K, lambda_u_params, optimizer,
                               adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path, pseudo_labels, tau)
-
-    # trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path)
+    else:
+        trainer = FullySupervisedTrainer(batch_size, wideresnet_params, n_steps, optimizer, adam_params, sgd_params, steps_validation, steps_checkpoint, dataset, save_path)
 
     start_time = time.time()
 

@@ -1,5 +1,6 @@
 save_path: '../models/balanced_adam_4k'
 load_checkpoint: ''
+training_type: 'mixmatch' # fs
 
 cifar10:
   batch_size: 64
