@@ -14,7 +14,7 @@ import pdb
 class MixMatchTrainer:
 
     def __init__(self, batch_size, num_lbls, model_params, n_steps, K, lambda_u, optimizer, adam,
-                 sgd, steps_validation, steps_checkpoint, dataset, save_path):
+                 sgd, steps_validation, steps_checkpoint, dataset, save_path, use_pseudo, tau):
 
         self.validation_set = False
 
@@ -69,9 +69,10 @@ class MixMatchTrainer:
         self.path = save_path
 
         # -- Pseudo label --
-        self.use_pseudo = False
+        self.use_pseudo = use_pseudo
         self.steps_pseudo_lbl = 5000
-        self.tau = 0.95  # confidence threshold
+        self.tau = tau  # confidence threshold
+
         self.min_unlbl_samples = 1000
         # Make a deep copy of original unlabeled loader
         _, self.unlabeled_loader_original, _, _, _, _, _ \
@@ -166,10 +167,12 @@ class MixMatchTrainer:
                 self.print_threshold_comparison(matrix)
 
                 # Generate pseudo set based on threshold (same for all classes)
-                # matrix = self.generate_pseudo_set(matrix)
+                if self.tau != -1:
+                    matrix = self.generate_pseudo_set(matrix)
 
                 # Generate pseudo set balanced (top 90% guesses of each class)
-                matrix = self.generate_pseudo_set_balanced(matrix)
+                else:
+                    matrix = self.generate_pseudo_set_balanced(matrix)
 
                 iter_labeled_loader = iter(self.labeled_loader)
                 iter_unlabeled_loader = iter(self.unlabeled_loader)
@@ -261,8 +264,8 @@ class MixMatchTrainer:
             'val_idx': self.val_idx,
         }, path)
 
-    def load_checkpoint(self, model_name):
-        saved_model = torch.load(f'../models/{model_name}')
+    def load_checkpoint(self, path_checkpoint):
+        saved_model = torch.load(path_checkpoint)
         self.model.load_state_dict(saved_model['model_state_dict'])
         self.ema_model.load_state_dict(saved_model['ema_state_dict'])
         self.optimizer.load_state_dict(saved_model['optimizer_state_dict'])
@@ -283,7 +286,7 @@ class MixMatchTrainer:
                                        valid_idxs=saved_model['val_idx'],
                                        validation=self.validation_set)
         self.unlabeled_loader_original = self.unlabeled_loader
-        print('Model ' + model_name + ' loaded.')
+        print('Model ' + path_checkpoint + ' loaded.')
 
     def get_pseudo_labels(self):
         matrix = torch.tensor([], device=self.device)

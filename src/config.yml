@@ -1,4 +1,7 @@
-save_path: '../models/adam_250/new_mm'
+save_path: '../models/balanced_adam_4k'
+load_checkpoint: ''
+training_type: 'mixmatch' # fs
+
 
 cifar10:
   batch_size: 64
@@ -21,6 +24,8 @@ MixMatchTrainer:
 
   steps_validation: 1000 # steps to print validation losses and accuracy
   steps_checkpoint: 5000
+  use_pseudo: True
+  tau: 0.99
 
   optimizer: 'adam'
   adam:

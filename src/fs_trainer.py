@@ -20,11 +20,11 @@ class FullySupervisedTrainer:
         self.start_step = 0
         self.steps_validation = steps_validation
         self.steps_checkpoint = steps_checkpoint
-        self.num_labeled = 45000
+        self.num_labeled = 50000
         self.train_loader, _, self.val_loader, self.test_loader, self.lbl_idx, _, self.val_idx = \
             get_dataloaders_with_index(path='../data',
                                        batch_size=batch_size,
-                                       num_labeled=50000,
+                                       num_labeled=self.num_labeled,
                                        which_dataset=dataset,
                                        validation=False)
         print('Labeled samples: ' + str(len(self.train_loader.sampler)))
