@@ -48,13 +48,11 @@ class MixMatchTrainer:
             self.momentum, self.lr_decay = None, None
             self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
             self.ema_optimizer = WeightEMA(self.model, self.ema_model, self.lr, alpha=0.999)
-            self.mixmatch = MixMatch(self.model, self.ema_model, self.batch_size, self.device, use_ema=True)
 
         else:
             self.lr, self.momentum, self.weight_decay, self.lr_decay = sgd
             self.optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay, nesterov=True)
             self.ema_optimizer = None
-            self.mixmatch = MixMatch(self.model, self.ema_model, self.batch_size, self.device, use_ema=False)
 
         self.lambda_u_max, self.step_top_up = lambda_u
         self.loss_mixmatch = Loss(self.lambda_u_max, self.step_top_up)
@@ -64,6 +62,7 @@ class MixMatchTrainer:
         self.val_accuracies, self.val_losses, = [], []
         self.best_acc = 0
 
+        self.mixmatch = MixMatch(self.model, self.batch_size, self.device)
 
         self.writer = SummaryWriter()
         self.path = save_path
