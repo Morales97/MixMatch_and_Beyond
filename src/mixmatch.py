@@ -7,13 +7,15 @@ from d03_processing.transform_data import Augment
 
 class MixMatch(object):
 
-    def __init__(self, model, batch_size, device, T=0.5, K=2, alpha=0.75):
+    def __init__(self, model, ema_model, batch_size, device, use_ema, T=0.5, K=2, alpha=0.75):
         self.T = T
         self.K = K
         self.batch_size = batch_size
         self.alpha = alpha
         self.softmax = nn.Softmax(dim=1)
         self.model = model
+        self.ema_model = ema_model
+        self.use_ema = use_ema
         self.device = device
         self.n_labels = 10  # Warning! hardcoded
         self.beta = torch.distributions.beta.Beta(alpha, alpha)
@@ -68,7 +70,10 @@ class MixMatch(object):
         with torch.no_grad():
             q_bar = torch.zeros([self.batch_size, self.n_labels], device=self.device)
             for k in range(self.K):
-                q_bar += self.softmax(self.model(u_hat[k]))
+                if self.use_ema:
+                    q_bar += self.softmax(self.ema_model(u_hat[k]))
+                else:
+                    q_bar += self.softmax(self.model(u_hat[k]))
             q_bar /= self.K
         return q_bar
 
