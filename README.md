@@ -10,6 +10,10 @@
 ```
 $ conda env create --file environment.yml
 ```
+Change the desires parameters in ```config.yml``` and run:
 
+```
+$ python3 main.py
+```
 ## Datasets
-- [CIFAR-10](http://www.cs.toronto.edu/~kriz/cifar.html): download the python version and place the data batches on ```data/cifar-10-batches-py```.
+- [CIFAR-10](http://www.cs.toronto.edu/~kriz/cifar.html): The dataset gets downloaded automatically in ```data/cifar-10-batches-py```, if it has not been downloaded before.
