@@ -12,7 +12,7 @@ PyTorch implementation of the MixMatch algorithm.
 ```
 $ conda env create --file environment.yml
 ```
-Change the desires parameters in ```config.yml``` and run:
+Change the desired parameters in ```config.yml``` and run:
 
 ```
 $ python3 main.py
