@@ -6,6 +6,8 @@ data/
 models/*
 !models/.keep
 
+results/*
+
 src/runs/
 
 .DS_Store

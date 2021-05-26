@@ -2,10 +2,11 @@ save_path: '../models/balanced_adam_4k'
 load_checkpoint: ''
 training_type: 'mixmatch' # fs
 
+
 cifar10:
   batch_size: 64
   num_outputs: 10
-  num_labeled: 4000
+  num_labeled: 250
 
 svhn:
   batch_size: 64
@@ -13,7 +14,7 @@ svhn:
   num_labeled: 250
 
 MixMatchTrainer:
-  n_steps: 200000
+  n_steps: 100000
   K: 2
   dataset: 'cifar10' #  'cifar10' or 'svhn'
 

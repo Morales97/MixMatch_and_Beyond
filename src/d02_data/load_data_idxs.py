@@ -26,7 +26,8 @@ def get_dataloaders_with_index(path="../../data", batch_size=64, num_labeled=250
         train_set = CustomCIFAR10(root=path, train=True, transform=transform)
         test_set = CustomCIFAR10(root=path, train=False, transform=transform)
     elif which_dataset == 'svhn':
-        raise Exception('Not supported yet')
+        train_set = datasets.SVHN(root=path, split='train', download=True, transform=transform)
+        test_set = datasets.SVHN(root=path, split='test', download=True, transform=transform)
     else:
         raise Exception('Not supported yet')
 
