@@ -25,7 +25,7 @@ $ python3 main.py
 | | Optimizer | 250 Labels | 1000 labels| 4000 labels| Fully supervised |
 |:---|:---:|:---:|:---:|:---:|:---:|
 |This code | Adam | 86.52 | 90.28 | 93.33 | 94.39 |
-|Paper | Adam | 88.92 ± 0.87 | 92.25 ± 0.32| 93.76 ± 0.06|95.87|
+|MixMatch paper | Adam | 88.92 ± 0.87 | 92.25 ± 0.32| 93.76 ± 0.06|95.87|
 
 ## References
 ```
