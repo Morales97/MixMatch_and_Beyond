@@ -1,8 +1,8 @@
 # MixMatch
 
-PyTorch implementation of the MixMatch algorithm for image classication. 
+PyTorch implementation of the MixMatch semi-supervised algorithm for image classication. 
 
-Semi-Supervised Learning leverages unlabeled images to learn representations and allows us to train with a very reduced labeled dataset. Results are surprisingly close to fully supervised learning.
+Semi-Supervised Learning leverages unlabeled images to learn quality representations and allows us to train with a very reduced labeled dataset. Results are surprisingly close to fully supervised learning.
 
 ## Papers
 
@@ -29,13 +29,14 @@ $ python3 main.py
 |This code | 86.52 | 90.28 | 93.33 | 94.39 |
 |MixMatch paper | 88.92 ± 0.87 | 92.25 ± 0.32| 93.76 ± 0.06|95.87|
 
+---
 # Beyond MixMatch
 
-In this project, we attempt to improve MixMatch using _pseudo labels_. The basic idea is to use the most confident predictions by the model trained with MixMatch as one-hot labels. This allows unlabeled images to be inlcuded in the labeled dataset. Training then resumes with the extended labeled dataset.
+In this project, we attempt to improve MixMatch using _pseudo labels_. The idea is to use the most confident predictions by the model trained with MixMatch as one-hot labels. This allows unlabeled images to be inlcuded in the labeled dataset. Training then resumes with the extended labeled dataset.
 
 ## Results
 
-We don't see a significant improvement with the use of _pseudo labels_. An interesing results was to find out that the model makes wrong guesses even in very confident predictions (>99% confidence), possibly as a side effect of MixMatch's entropy minimization. Results are for only 200,000 update steps.
+We don't see a significant improvement with the use of _pseudo labels_. An interesing result was to find out that the model makes wrong guesses even in very confident predictions (>99% confidence), possibly as a side effect of MixMatch's entropy minimization. This confirmation bias likely is hurting the performance. Results are for only 200,000 update steps.
 
 | Accuracy (%) | 4000 labels|
 |:---|:---:|
